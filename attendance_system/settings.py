@@ -53,7 +53,8 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 # Allowed hosts
 ALLOWED_HOSTS = [
-    'attendance-system-6a30.onrender.com',  # Your deployment host
+    'attendance-system-6a30.onrender.com',  # Old deployment host
+    'test-dummy-3tx8.onrender.com',         # New Render deployment host
     'localhost',
     '127.0.0.1'
 ]
