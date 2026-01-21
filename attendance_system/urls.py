@@ -21,6 +21,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('api/', include('attendance.urls')),
+    path('api-auth/', include('rest_framework.urls')),
     path('admin/', admin.site.urls),
     path('', lambda request: HttpResponseRedirect('/api/')),  # Redirect root URL to /api/
     
