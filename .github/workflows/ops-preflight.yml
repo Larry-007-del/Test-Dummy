@@ -1,0 +1,38 @@
+name: Ops Preflight
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show preflight intentions
+        run: |
+          echo "This workflow checks for crucial operational secrets and runs Django system checks."
+
+      - name: Fail if SECRET_KEY is missing
+        if: ${{ secrets.SECRET_KEY == '' }}
+        run: |
+          echo "ERROR: SECRET_KEY secret is missing. Set SECRET_KEY in repository secrets or in your deployment environment."
+          exit 1
+
+      - name: Fail if HEALTHCHECK_URL is missing
+        if: ${{ secrets.HEALTHCHECK_URL == '' }}
+        run: |
+          echo "ERROR: HEALTHCHECK_URL secret is missing. Set HEALTHCHECK_URL to your /api/healthz/ endpoint."
+          exit 1
+
+      - name: Optional secrets report (non-blocking)
+        run: |
+          echo "SENTRY_DSN set: ${{ secrets.SENTRY_DSN != '' }}"
+          echo "SENTRY_AUTH_TOKEN set: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}"
+          echo "FEEDBACK_WEBHOOK_URL set: ${{ secrets.FEEDBACK_WEBHOOK_URL != '' }}"
+
+      - name: Run Django system checks
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python manage.py check

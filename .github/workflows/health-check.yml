@@ -1,0 +1,40 @@
+name: Conditional Health Check
+
+on:
+  schedule:
+    # Daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for HEALTHCHECK_URL secret
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.HEALTHCHECK_URL }}" ]; then
+            echo "HEALTHCHECK_URL not configured; skipping healthcheck."
+            exit 0
+          fi
+
+      - name: Perform health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.HEALTHCHECK_URL }}")
+          echo "Health check status: $STATUS"
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Health check failed with status $STATUS"
+            echo "Response body:"
+            curl -s "${{ secrets.HEALTHCHECK_URL }}" || true
+            exit 1
+          fi
+
+      - name: Notify Slack on failure (optional)
+        if: ${{ failure() && secrets.SLACK_WEBHOOK }}
+        shell: bash
+        run: |
+          # Send a brief notification to Slack if SLACK_WEBHOOK is configured
+          PAYLOAD="{\"text\":\"Health check failed for ${{ github.repository }} (run #${{ github.run_number }})\"}"
+          curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "${{ secrets.SLACK_WEBHOOK }}" || true
