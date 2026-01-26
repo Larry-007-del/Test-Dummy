@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.coverage
+.mypy_cache/
+
+# Django
+*.log
+local_settings.py
+.env
+.venv/
+venv/
+
+# SQLite
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
