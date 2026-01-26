@@ -39,6 +39,29 @@ from .serializers import (
 )
 from rest_framework.permissions import AllowAny, IsAdminUser
 
+# Current user profile info
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        role = 'admin' if user.is_staff or user.is_superuser else 'user'
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': role,
+            'student_id': None,
+            'lecturer_id': None,
+        }
+        if hasattr(user, 'student'):
+            data['role'] = 'student'
+            data['student_id'] = user.student.id
+        if hasattr(user, 'lecturer'):
+            data['role'] = 'lecturer'
+            data['lecturer_id'] = user.lecturer.id
+        return Response(data)
+
 # Lecturer ViewSet
 class LecturerViewSet(viewsets.ModelViewSet):
     queryset = Lecturer.objects.all()

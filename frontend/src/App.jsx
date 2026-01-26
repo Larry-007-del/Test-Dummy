@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard'
 import LecturersPage from './pages/LecturersPage'
 import StudentsPage from './pages/StudentsPage'
 import AttendancePage from './pages/AttendancePage'
+import StudentDashboard from './pages/StudentDashboard'
+import LecturerDashboard from './pages/LecturerDashboard'
 import PrivateRoute from './components/PrivateRoute'
 import api from './services/api'
 
@@ -26,7 +28,7 @@ export default function App() {
     // Check if token is still valid
     const checkAuth = async () => {
       try {
-        await api.get('/api/')
+        await api.get('/api/me/')
         setIsAuthenticated(true)
       } catch (error) {
         localStorage.removeItem('authToken')
@@ -75,6 +77,22 @@ export default function App() {
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
             <AttendancePage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/student-dashboard"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <StudentDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/lecturer-dashboard"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <LecturerDashboard />
           </PrivateRoute>
         }
       />

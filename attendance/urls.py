@@ -14,6 +14,7 @@ router.register(r'feedback', views.FeedbackViewSet, basename='feedback')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('me/', views.MeView.as_view(), name='me'),
     path('api/studentenrolledcourses/', views.StudentEnrolledCoursesView.as_view(), name='student_enrolled_courses'),
     path('api/login/student/', views.StudentLoginView.as_view(), name='student_login'),
     path('api/login/staff/', views.StaffLoginView.as_view(), name='staff_login'),

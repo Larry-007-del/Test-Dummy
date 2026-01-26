@@ -8,6 +8,10 @@ import {
   Paper,
   Typography,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import api from '../services/api'
 
@@ -16,6 +20,7 @@ export default function LoginPage({ setIsAuthenticated }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState('admin')
   const navigate = useNavigate()
 
   const handleLogin = async (e) => {
@@ -24,7 +29,7 @@ export default function LoginPage({ setIsAuthenticated }) {
     setLoading(true)
 
     try {
-      const response = await api.post('/api-token-auth/', {
+      const response = await api.post('/api/api-token-auth/', {
         username,
         password,
       })
@@ -33,7 +38,15 @@ export default function LoginPage({ setIsAuthenticated }) {
       if (token) {
         localStorage.setItem('authToken', token)
         setIsAuthenticated(true)
-        navigate('/dashboard')
+        try {
+          const me = await api.get('/api/me/')
+          const userRole = me.data?.role || role
+          if (userRole === 'student') navigate('/student-dashboard')
+          else if (userRole === 'lecturer') navigate('/lecturer-dashboard')
+          else navigate('/dashboard')
+        } catch {
+          navigate(role === 'student' ? '/student-dashboard' : role === 'lecturer' ? '/lecturer-dashboard' : '/dashboard')
+        }
       } else {
         setError('Invalid username or password')
       }
@@ -66,6 +79,14 @@ export default function LoginPage({ setIsAuthenticated }) {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           <Box component="form" onSubmit={handleLogin}>
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Role</InputLabel>
+              <Select value={role} label="Role" onChange={(e) => setRole(e.target.value)}>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="lecturer">Lecturer</MenuItem>
+                <MenuItem value="student">Student</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
               fullWidth
               label="Username"
