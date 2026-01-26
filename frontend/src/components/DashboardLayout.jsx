@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AppBar,
   Avatar,
@@ -28,24 +28,48 @@ import api from '../services/api'
 
 const drawerWidth = 260
 
-export default function DashboardLayout({ title, subtitle, children }) {
+export default function DashboardLayout({ title, subtitle, children, userLabel = 'admin' }) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
   const location = useLocation()
+  const [me, setMe] = useState(null)
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, to: '/dashboard' },
-    { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
-    { text: 'Students', icon: <SchoolIcon />, to: '/students' },
-    { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
-  ]
+  useEffect(() => {
+    let mounted = true
+    async function loadMe() {
+      try {
+        const res = await api.get('/api/me/')
+        if (mounted) setMe(res.data)
+      } catch {
+        if (mounted) setMe(null)
+      }
+    }
+    loadMe()
+    return () => { mounted = false }
+  }, [])
+
+  const menuItems = useMemo(() => {
+    const items = [
+      { text: 'Dashboard', icon: <DashboardIcon />, to: '/dashboard' },
+      { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
+      { text: 'Students', icon: <SchoolIcon />, to: '/students' },
+      { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
+    ]
+    if (me?.role === 'student') {
+      items.unshift({ text: 'Student Portal', icon: <SchoolIcon />, to: '/student-dashboard' })
+    }
+    if (me?.role === 'lecturer') {
+      items.unshift({ text: 'Lecturer Portal', icon: <PeopleIcon />, to: '/lecturer-dashboard' })
+    }
+    return items
+  }, [me])
 
   const handleLogout = async () => {
     try {
-      await api.post('/api/logout/')
+      await api.post('/api/api/logout/')
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
@@ -54,6 +78,7 @@ export default function DashboardLayout({ title, subtitle, children }) {
     }
   }
 
+  const displayName = me?.username || userLabel
   const drawer = (
     <Box sx={{ height: '100%', bgcolor: '#0f172a', color: '#e2e8f0' }}>
       <Box sx={{ px: 2.5, py: 3 }}>
@@ -114,7 +139,7 @@ export default function DashboardLayout({ title, subtitle, children }) {
             )}
           </Box>
           <IconButton onClick={(event) => setAnchorEl(event.currentTarget)}>
-            <Avatar sx={{ bgcolor: '#3b82f6' }}>A</Avatar>
+            <Avatar sx={{ bgcolor: '#3b82f6' }}>{displayName.charAt(0).toUpperCase()}</Avatar>
           </IconButton>
           <Menu
             anchorEl={anchorEl}
@@ -123,7 +148,7 @@ export default function DashboardLayout({ title, subtitle, children }) {
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
-            <MenuItem disabled>Signed in as <b>admin</b></MenuItem>
+            <MenuItem disabled>Signed in as <b>{displayName}</b></MenuItem>
             <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }}>
               <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Logout
             </MenuItem>
