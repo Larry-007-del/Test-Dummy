@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Box,
   Card,
@@ -16,7 +16,12 @@ import {
   TextField,
   Button,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material'
+import { Html5Qrcode } from 'html5-qrcode'
 import {
   School as SchoolIcon,
   CalendarMonth as CalendarIcon,
@@ -62,6 +67,9 @@ export default function StudentDashboard() {
   const [checkInMessage, setCheckInMessage] = useState(null)
   const [profileMessage, setProfileMessage] = useState(null)
   const [profileMissing, setProfileMissing] = useState(false)
+  const [scanOpen, setScanOpen] = useState(false)
+  const [scanError, setScanError] = useState(null)
+  const qrRef = useRef(null)
 
   useEffect(() => {
     if (profileMissing) return
@@ -107,6 +115,40 @@ export default function StudentDashboard() {
       setCheckInMessage({ type: 'error', text: msg })
     }
   }
+
+  useEffect(() => {
+    let active = true
+    async function startScanner() {
+      if (!scanOpen) return
+      setScanError(null)
+      const html5QrCode = new Html5Qrcode('qr-reader')
+      qrRef.current = html5QrCode
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: 220 },
+          (decodedText) => {
+            if (!active) return
+            setTokenInput(decodedText)
+            setScanOpen(false)
+          },
+          () => {},
+        )
+      } catch (err) {
+        if (active) setScanError('Unable to access camera. Please allow camera access.')
+      }
+    }
+    startScanner()
+    return () => {
+      active = false
+      if (qrRef.current) {
+        qrRef.current.stop().catch(() => {}).finally(() => {
+          qrRef.current?.clear?.().catch(() => {})
+          qrRef.current = null
+        })
+      }
+    }
+  }, [scanOpen])
 
   return (
     <DashboardLayout
@@ -181,6 +223,9 @@ export default function StudentDashboard() {
                 />
                 <Button variant="contained" onClick={handleCheckIn}>
                   Submit Check-In
+                </Button>
+                <Button variant="outlined" onClick={() => setScanOpen(true)}>
+                  Scan QR
                 </Button>
               </Stack>
               {checkInMessage && (
@@ -269,6 +314,23 @@ export default function StudentDashboard() {
           </Grid>
         </Grid>
       </Container>
+
+      <Dialog open={scanOpen} onClose={() => setScanOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Scan Attendance QR</DialogTitle>
+        <DialogContent>
+          <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
+            <Box id="qr-reader" sx={{ width: '100%' }} />
+          </Box>
+          {scanError && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              {scanError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScanOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   )
 }
