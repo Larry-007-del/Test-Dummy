@@ -38,6 +38,7 @@ from .serializers import (
     FeedbackSerializer,
 )
 from rest_framework.permissions import AllowAny, IsAdminUser
+from .validators import get_password_requirements
 
 # Current user profile info
 class MeView(APIView):
@@ -61,6 +62,14 @@ class MeView(APIView):
             data['role'] = 'lecturer'
             data['lecturer_id'] = user.lecturer.id
         return Response(data)
+
+
+class PasswordRequirementsView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        return Response(get_password_requirements())
+
 
 # Lecturer ViewSet
 class LecturerViewSet(viewsets.ModelViewSet):

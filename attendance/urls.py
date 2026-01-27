@@ -15,6 +15,7 @@ router.register(r'feedback', views.FeedbackViewSet, basename='feedback')
 urlpatterns = [
     path('', include(router.urls)),
     path('me/', views.MeView.as_view(), name='me'),
+    path('password-requirements/', views.PasswordRequirementsView.as_view(), name='password_requirements'),
     path('admin/create-student/', views.AdminCreateStudentView.as_view(), name='admin_create_student'),
     path('admin/create-lecturer/', views.AdminCreateLecturerView.as_view(), name='admin_create_lecturer'),
     path('admin/import-students/', views.AdminBulkImportStudentsView.as_view(), name='admin_import_students'),
