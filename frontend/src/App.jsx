@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
@@ -9,6 +10,7 @@ import StudentsPage from './pages/StudentsPage'
 import AttendancePage from './pages/AttendancePage'
 import StudentDashboard from './pages/StudentDashboard'
 import LecturerDashboard from './pages/LecturerDashboard'
+import NotFoundPage from './pages/NotFoundPage'
 import PrivateRoute from './components/PrivateRoute'
 import api from './services/api'
 
@@ -47,9 +49,10 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
       <Route
         path="/dashboard"
         element={
@@ -102,7 +105,9 @@ export default function App() {
         path="/"
         element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
       />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </ThemeProvider>
+    </ErrorBoundary>
   )
 }
