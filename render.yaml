@@ -14,3 +14,11 @@ services:
         value: "attendance-system-6a30.onrender.com,localhost,127.0.0.1"
       - key: GDAL_LIBRARY_PATH
         value: YOUR_GDAL_LIBRARY_PATH
+  - type: static
+    name: attendance-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://test-dummy-3tx8.onrender.com
