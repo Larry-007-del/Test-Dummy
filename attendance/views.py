@@ -531,3 +531,149 @@ class LecturerLocationView(APIView):
 
         except AttendanceToken.DoesNotExist:
             return Response({'error': 'Invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+# Admin-only creation and bulk import
+class AdminCreateStudentView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        username = data.get('username')
+        password = data.get('password') or 'changeme123'
+        student_id = data.get('student_id')
+        name = data.get('name')
+        programme = data.get('programme_of_study')
+        year = data.get('year')
+        phone = data.get('phone_number')
+
+        if not username or not student_id or not name:
+            return Response({'error': 'username, student_id, and name are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        if Student.objects.filter(student_id=student_id).exists():
+            return Response({'error': 'Student ID already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, password=password)
+        student = Student.objects.create(
+            user=user,
+            student_id=student_id,
+            name=name,
+            programme_of_study=programme,
+            year=year,
+            phone_number=phone,
+        )
+        return Response({'id': student.id, 'username': user.username, 'student_id': student.student_id}, status=status.HTTP_201_CREATED)
+
+
+class AdminCreateLecturerView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        username = data.get('username')
+        password = data.get('password') or 'changeme123'
+        staff_id = data.get('staff_id')
+        name = data.get('name')
+        department = data.get('department')
+        phone = data.get('phone_number')
+
+        if not username or not staff_id or not name:
+            return Response({'error': 'username, staff_id, and name are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        if Lecturer.objects.filter(staff_id=staff_id).exists():
+            return Response({'error': 'Staff ID already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, password=password)
+        lecturer = Lecturer.objects.create(
+            user=user,
+            staff_id=staff_id,
+            name=name,
+            department=department,
+            phone_number=phone,
+        )
+        return Response({'id': lecturer.id, 'username': user.username, 'staff_id': lecturer.staff_id}, status=status.HTTP_201_CREATED)
+
+
+class AdminBulkImportStudentsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        decoded = upload.read().decode('utf-8')
+        reader = csv.DictReader(io.StringIO(decoded))
+        created = 0
+        skipped = 0
+        for row in reader:
+            username = (row.get('username') or '').strip()
+            password = (row.get('password') or 'changeme123').strip()
+            student_id = (row.get('student_id') or '').strip()
+            name = (row.get('name') or '').strip()
+            programme = (row.get('programme_of_study') or '').strip()
+            year = (row.get('year') or '').strip()
+            phone = (row.get('phone_number') or '').strip()
+
+            if not username or not student_id or not name:
+                skipped += 1
+                continue
+            if User.objects.filter(username=username).exists() or Student.objects.filter(student_id=student_id).exists():
+                skipped += 1
+                continue
+
+            user = User.objects.create_user(username=username, password=password)
+            Student.objects.create(
+                user=user,
+                student_id=student_id,
+                name=name,
+                programme_of_study=programme,
+                year=year,
+                phone_number=phone,
+            )
+            created += 1
+
+        return Response({'created': created, 'skipped': skipped}, status=status.HTTP_200_OK)
+
+
+class AdminBulkImportLecturersView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        upload = request.FILES.get('file')
+        if not upload:
+            return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        decoded = upload.read().decode('utf-8')
+        reader = csv.DictReader(io.StringIO(decoded))
+        created = 0
+        skipped = 0
+        for row in reader:
+            username = (row.get('username') or '').strip()
+            password = (row.get('password') or 'changeme123').strip()
+            staff_id = (row.get('staff_id') or '').strip()
+            name = (row.get('name') or '').strip()
+            department = (row.get('department') or '').strip()
+            phone = (row.get('phone_number') or '').strip()
+
+            if not username or not staff_id or not name:
+                skipped += 1
+                continue
+            if User.objects.filter(username=username).exists() or Lecturer.objects.filter(staff_id=staff_id).exists():
+                skipped += 1
+                continue
+
+            user = User.objects.create_user(username=username, password=password)
+            Lecturer.objects.create(
+                user=user,
+                staff_id=staff_id,
+                name=name,
+                department=department,
+                phone_number=phone,
+            )
+            created += 1
+
+        return Response({'created': created, 'skipped': skipped}, status=status.HTTP_200_OK)
