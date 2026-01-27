@@ -20,6 +20,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  Skeleton,
 } from '@mui/material'
 import { Html5Qrcode } from 'html5-qrcode'
 import {
@@ -69,6 +71,8 @@ export default function StudentDashboard() {
   const [profileMissing, setProfileMissing] = useState(false)
   const [scanOpen, setScanOpen] = useState(false)
   const [scanError, setScanError] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [checkingIn, setCheckingIn] = useState(false)
   const qrRef = useRef(null)
 
   useEffect(() => {
@@ -94,6 +98,8 @@ export default function StudentDashboard() {
         }
         setCourses([])
         setHistory([])
+      } finally {
+        setLoading(false)
       }
     }
     fetchStudentData()
@@ -106,6 +112,7 @@ export default function StudentDashboard() {
       setCheckInMessage({ type: 'error', text: 'Please enter a token.' })
       return
     }
+    setCheckingIn(true)
     try {
       const res = await api.post('/api/courses/take_attendance/', { token: tokenInput.trim() })
       setCheckInMessage({ type: 'success', text: res.data?.message || 'Attendance recorded.' })
@@ -113,6 +120,8 @@ export default function StudentDashboard() {
     } catch (error) {
       const msg = error?.response?.data?.error || 'Unable to record attendance.'
       setCheckInMessage({ type: 'error', text: msg })
+    } finally {
+      setCheckingIn(false)
     }
   }
 
@@ -164,41 +173,63 @@ export default function StudentDashboard() {
           Access your courses, attendance history, and institutional resources.
         </Typography>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Enrolled Courses
-                </Typography>
-                <Typography variant="h4" fontWeight={700}>
-                  {courses.length}
-                </Typography>
-              </CardContent>
-            </Card>
+        {loading ? (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
+            </Grid>
+            <Grid item xs={12}>
+              <Skeleton variant="rectangular" height={200} />
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Attendance Records
-                </Typography>
-                <Typography variant="h4" fontWeight={700}>
-                  {totalAttendances}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Status
-                </Typography>
-                <Chip label="Active" color="success" />
-              </CardContent>
-            </Card>
-          </Grid>
+        ) : (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Enrolled Courses
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {courses.length}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Attendance Records
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {totalAttendances}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Status
+                  </Typography>
+                  <Chip label="Active" color="success" />
+                </CardContent>
+              </Card>
+            </Grid>
 
           {profileMessage && (
             <Grid item xs={12}>
@@ -220,11 +251,17 @@ export default function StudentDashboard() {
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   sx={{ flex: 1 }}
+                  disabled={checkingIn}
                 />
-                <Button variant="contained" onClick={handleCheckIn}>
-                  Submit Check-In
+                <Button 
+                  variant="contained" 
+                  onClick={handleCheckIn}
+                  disabled={checkingIn}
+                  startIcon={checkingIn && <CircularProgress size={20} />}
+                >
+                  {checkingIn ? 'Submitting...' : 'Submit Check-In'}
                 </Button>
-                <Button variant="outlined" onClick={() => setScanOpen(true)}>
+                <Button variant="outlined" onClick={() => setScanOpen(true)} disabled={checkingIn}>
                   Scan QR
                 </Button>
               </Stack>
@@ -313,6 +350,7 @@ export default function StudentDashboard() {
             </Paper>
           </Grid>
         </Grid>
+        )}
       </Container>
 
       <Dialog open={scanOpen} onClose={() => setScanOpen(false)} maxWidth="sm" fullWidth>

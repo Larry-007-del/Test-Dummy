@@ -15,6 +15,8 @@ import {
   DialogTitle,
   DialogActions,
   Alert,
+  CircularProgress,
+  Skeleton,
 } from '@mui/material'
 import {
   QrCode2 as QrCodeIcon,
@@ -101,81 +103,100 @@ export default function LecturerDashboard() {
           Manage courses, generate attendance tokens, and review attendance history.
         </Typography>
 
-        <Grid container spacing={3}>
-          {profileMessage && (
-            <Grid item xs={12}>
-              <Alert severity="warning">{profileMessage}</Alert>
+        {loading ? (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
             </Grid>
-          )}
-          {actionMessage && (
-            <Grid item xs={12}>
-              <Alert severity={actionMessage.type}>{actionMessage.text}</Alert>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
             </Grid>
-          )}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Assigned Courses
-                </Typography>
-                <Typography variant="h4" fontWeight={700}>
-                  {courses.length}
-                </Typography>
-              </CardContent>
-            </Card>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={100} />
+            </Grid>
+            <Grid item xs={12} md={7}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Skeleton variant="rectangular" height={300} />
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Attendance Sessions
-                </Typography>
-                <Typography variant="h4" fontWeight={700}>
-                  {attendanceHistory.reduce((sum, item) => sum + (item.attendances?.length || 0), 0)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ boxShadow: 4 }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">
-                  Status
-                </Typography>
-                <Chip label="Active" color="success" />
-              </CardContent>
-            </Card>
-          </Grid>
+        ) : (
+          <Grid container spacing={3}>
+            {profileMessage && (
+              <Grid item xs={12}>
+                <Alert severity="warning">{profileMessage}</Alert>
+              </Grid>
+            )}
+            {actionMessage && (
+              <Grid item xs={12}>
+                <Alert severity={actionMessage.type}>{actionMessage.text}</Alert>
+              </Grid>
+            )}
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Assigned Courses
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {courses.length}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Attendance Sessions
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {attendanceHistory.reduce((sum, item) => sum + (item.attendances?.length || 0), 0)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ boxShadow: 4 }}>
+                <CardContent>
+                  <Typography variant="body2" color="textSecondary">
+                    Status
+                  </Typography>
+                  <Chip label="Active" color="success" />
+                </CardContent>
+              </Card>
+            </Grid>
 
-          <Grid item xs={12} md={7}>
-            <Paper sx={{ p: 2.5, boxShadow: 4 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                My Courses
-              </Typography>
-              <Stack spacing={2}>
-                {courses.map((course) => (
-                  <Paper key={course.id} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography fontWeight={600}>{course.name}</Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {course.course_code}
-                      </Typography>
-                    </Box>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Button
-                        size="small"
-                        variant="contained"
-                        startIcon={<QrCodeIcon />}
-                        onClick={() => handleGenerateQr(course.id)}
-                      >
-                        Generate QR
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        onClick={() => handleEndAttendance(course.id)}
-                      >
+            <Grid item xs={12} md={7}>
+              <Paper sx={{ p: 2.5, boxShadow: 4 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  My Courses
+                </Typography>
+                <Stack spacing={2}>
+                  {courses.map((course) => (
+                    <Paper key={course.id} sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography fontWeight={600}>{course.name}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {course.course_code}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<QrCodeIcon />}
+                          onClick={() => handleGenerateQr(course.id)}
+                        >
+                          Generate QR
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          onClick={() => handleEndAttendance(course.id)}
+                        >
                         End Session
                       </Button>
                     </Stack>
@@ -231,6 +252,7 @@ export default function LecturerDashboard() {
             </Paper>
           </Grid>
         </Grid>
+        )}
       </Container>
 
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)} maxWidth="sm" fullWidth>

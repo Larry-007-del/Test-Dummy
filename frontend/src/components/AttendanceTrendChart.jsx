@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Paper, Typography, Box } from '@mui/material'
+import { Paper, Typography, Box, Skeleton } from '@mui/material'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import api from '../services/api'
 
@@ -36,17 +36,21 @@ export default function AttendanceTrendChart({ embedded = false }) {
       <Typography variant="h6" gutterBottom>
         Attendance Trend
       </Typography>
-      <Box sx={{ width: '100%', minHeight: 250, height: 250 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} isAnimationActive />
-          </LineChart>
-        </ResponsiveContainer>
-      </Box>
+      {loading ? (
+        <Skeleton variant="rectangular" width="100%" height={250} />
+      ) : (
+        <Box sx={{ width: '100%', minHeight: 250, height: 250 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} isAnimationActive />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      )}
     </>
   )
 

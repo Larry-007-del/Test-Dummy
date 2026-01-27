@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { Paper, Typography, Box, Chip, Fade } from '@mui/material'
+import { Paper, Typography, Box, Chip, Fade, Skeleton } from '@mui/material'
 import api from '../services/api'
 
 export default function AttendanceCalendar({ value, onChange, embedded = false }) {
   const [attendanceDates, setAttendanceDates] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -17,7 +18,7 @@ export default function AttendanceCalendar({ value, onChange, embedded = false }
       } catch {
         setAttendanceDates([])
       } finally {
-        // no-op
+        setLoading(false)
       }
     }
     fetchAttendance()
@@ -32,38 +33,46 @@ export default function AttendanceCalendar({ value, onChange, embedded = false }
       <Typography variant="h6" gutterBottom>
         Attendance Calendar
       </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-        <Calendar
-          onChange={onChange}
-          value={value}
-          tileContent={({ date }) => {
-            const dateStr = getDateString(date)
-            if (attendanceDates.includes(dateStr)) {
-              return (
-                <Fade in={true} timeout={800}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <Chip label="✔" color="success" size="small" sx={{ fontWeight: 'bold', fontSize: 12, px: 0.5, py: 0 }} />
-                  </Box>
-                </Fade>
-              )
-            }
-            if (dateStr === getDateString(new Date())) {
-              return (
-                <Fade in={true} timeout={800}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <Chip label="Today" color="primary" size="small" sx={{ fontWeight: 'bold', fontSize: 12, px: 0.5, py: 0 }} />
-                  </Box>
-                </Fade>
-              )
-            }
-            return null
-          }}
-        />
-      </Box>
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 1 }}>
-        <Chip label="✔ Attendance" color="success" size="small" />
-        <Chip label="Today" color="primary" size="small" />
-      </Box>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Skeleton variant="rectangular" width={350} height={350} />
+        </Box>
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <Calendar
+              onChange={onChange}
+              value={value}
+              tileContent={({ date }) => {
+                const dateStr = getDateString(date)
+                if (attendanceDates.includes(dateStr)) {
+                  return (
+                    <Fade in={true} timeout={800}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Chip label="✔" color="success" size="small" sx={{ fontWeight: 'bold', fontSize: 12, px: 0.5, py: 0 }} />
+                      </Box>
+                    </Fade>
+                  )
+                }
+                if (dateStr === getDateString(new Date())) {
+                  return (
+                    <Fade in={true} timeout={800}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Chip label="Today" color="primary" size="small" sx={{ fontWeight: 'bold', fontSize: 12, px: 0.5, py: 0 }} />
+                      </Box>
+                    </Fade>
+                  )
+                }
+                return null
+              }}
+            />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 1 }}>
+            <Chip label="✔ Attendance" color="success" size="small" />
+            <Chip label="Today" color="primary" size="small" />
+          </Box>
+        </>
+      )}
     </>
   )
 
