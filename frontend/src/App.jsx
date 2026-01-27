@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { ThemeProvider } from './context/ThemeContext'
 
 import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
@@ -46,8 +47,9 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
+    <ThemeProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
       <Route
         path="/dashboard"
         element={
@@ -101,5 +103,6 @@ export default function App() {
         element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
       />
     </Routes>
+    </ThemeProvider>
   )
 }

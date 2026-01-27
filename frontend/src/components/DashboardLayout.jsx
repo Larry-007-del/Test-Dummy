@@ -13,6 +13,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Tooltip,
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
@@ -21,15 +22,19 @@ import {
   Event as EventIcon,
   Menu as MenuIcon,
   Logout as LogoutIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
 } from '@mui/icons-material'
 import { useLocation } from 'react-router-dom'
 import SidebarMenuItem from './SidebarMenuItem'
+import { useThemeMode } from '../context/ThemeContext'
 import api from '../services/api'
 
 const drawerWidth = 260
 
 export default function DashboardLayout({ title, subtitle, children, userLabel = 'admin' }) {
   const theme = useTheme()
+  const { mode, toggleTheme } = useThemeMode()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
@@ -138,6 +143,11 @@ export default function DashboardLayout({ title, subtitle, children, userLabel =
               </Typography>
             )}
           </Box>
+          <Tooltip title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}>
+            <IconButton onClick={toggleTheme} color="inherit">
+              {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+            </IconButton>
+          </Tooltip>
           <IconButton onClick={(event) => setAnchorEl(event.currentTarget)}>
             <Avatar sx={{ bgcolor: '#3b82f6' }}>{displayName.charAt(0).toUpperCase()}</Avatar>
           </IconButton>
