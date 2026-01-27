@@ -9,12 +9,15 @@ import {
   TableRow,
   Typography,
   Chip,
+  Button,
+  Alert,
 } from '@mui/material'
 import DashboardLayout from '../components/DashboardLayout'
 import api from '../services/api'
 
 export default function AttendancePage() {
   const [records, setRecords] = useState([])
+  const [downloadError, setDownloadError] = useState(null)
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -28,12 +31,34 @@ export default function AttendancePage() {
     fetchAttendance()
   }, [])
 
+  const handleExport = async (attendanceId) => {
+    try {
+      setDownloadError(null)
+      const response = await api.get('/api/attendances/generate_excel/', {
+        params: { attendance_id: attendanceId },
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data], { type: response.headers['content-type'] })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `attendance_${attendanceId}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      setDownloadError('Unable to export attendance report. Try again.')
+    }
+  }
+
   return (
     <DashboardLayout title="Attendance" subtitle="Track daily attendance records">
       <Paper sx={{ p: 3, boxShadow: 4 }}>
         <Typography variant="h6" fontWeight={600} gutterBottom>
           Attendance Records
         </Typography>
+        {downloadError && <Alert severity="error" sx={{ mb: 2 }}>{downloadError}</Alert>}
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -41,6 +66,7 @@ export default function AttendancePage() {
               <TableCell>Date</TableCell>
               <TableCell>Present Students</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Report</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -56,11 +82,16 @@ export default function AttendancePage() {
                     label={record.is_active ? 'Active' : 'Closed'}
                   />
                 </TableCell>
+                <TableCell>
+                  <Button size="small" variant="outlined" onClick={() => handleExport(record.id)}>
+                    Export Excel
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {!records.length && (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={5}>
                   <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>
                     No attendance records found yet.
                   </Box>
