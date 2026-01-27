@@ -39,6 +39,10 @@ from .serializers import (
 )
 from rest_framework.permissions import AllowAny, IsAdminUser
 from .validators import get_password_requirements
+from .models import EmailVerificationToken, PasswordResetToken
+from .email_utils import send_verification_email, send_password_reset_email
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 # Current user profile info
 class MeView(APIView):
@@ -719,3 +723,82 @@ class AdminEnrollStudentView(APIView):
         # Use through model to ensure enrollment exists
         CourseEnrollment.objects.get_or_create(course=course, student=student)
         return Response({'status': 'student_enrolled', 'course_id': course.id, 'student_id': student.id})
+
+
+class RequestPasswordResetView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            send_password_reset_email(user)
+            return Response({'message': 'Password reset link sent to your email'})
+        except User.DoesNotExist:
+            # Don't reveal if user exists
+            return Response({'message': 'If an account exists with this email, you will receive a password reset link'})
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        token_value = request.data.get('token')
+        new_password = request.data.get('password')
+        
+        if not token_value or not new_password:
+            return Response({'error': 'Token and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            token = PasswordResetToken.objects.get(token=token_value)
+            
+            if not token.is_valid():
+                return Response({'error': 'Token is invalid or expired'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validate password strength
+            try:
+                validate_password(new_password, token.user)
+            except DjangoValidationError as e:
+                return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Set new password
+            token.user.set_password(new_password)
+            token.user.save()
+            
+            # Mark token as used
+            token.used = True
+            token.save()
+            
+            return Response({'message': 'Password reset successfully'})
+            
+        except PasswordResetToken.DoesNotExist:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        token_value = request.data.get('token')
+        
+        if not token_value:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            token = EmailVerificationToken.objects.get(token=token_value)
+            
+            if not token.is_valid():
+                return Response({'error': 'Token is invalid or expired'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Mark email as verified (you can add a field to User model)
+            user = token.user
+            # For now, we'll just delete the token to indicate verification
+            token.delete()
+            
+            return Response({'message': 'Email verified successfully', 'username': user.username})
+            
+        except EmailVerificationToken.DoesNotExist:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)

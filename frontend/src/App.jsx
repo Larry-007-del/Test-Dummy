@@ -12,6 +12,8 @@ import AttendancePage from './pages/AttendancePage'
 import StudentDashboard from './pages/StudentDashboard'
 import LecturerDashboard from './pages/LecturerDashboard'
 import NotFoundPage from './pages/NotFoundPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import PrivateRoute from './components/PrivateRoute'
 import api from './services/api'
 
@@ -56,8 +58,8 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
-      <Route
+          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />      <Route
         path="/dashboard"
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
