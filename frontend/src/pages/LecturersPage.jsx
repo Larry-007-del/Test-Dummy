@@ -13,12 +13,21 @@ import {
   Button,
   Alert,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import DashboardLayout from '../components/DashboardLayout'
 import api from '../services/api'
 
 export default function LecturersPage() {
   const [lecturers, setLecturers] = useState([])
+  const [courses, setCourses] = useState([])
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -29,6 +38,11 @@ export default function LecturersPage() {
   })
   const [message, setMessage] = useState(null)
   const [uploadMessage, setUploadMessage] = useState(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState(null)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignCourseId, setAssignCourseId] = useState('')
+  const [selectedLecturer, setSelectedLecturer] = useState(null)
 
   useEffect(() => {
     async function fetchLecturers() {
@@ -48,6 +62,15 @@ export default function LecturersPage() {
       setLecturers(res.data.results || res.data)
     } catch {
       setLecturers([])
+    }
+  }
+
+  const refreshCourses = async () => {
+    try {
+      const res = await api.get('/api/courses/')
+      setCourses(res.data.results || res.data)
+    } catch {
+      setCourses([])
     }
   }
 
@@ -95,6 +118,60 @@ export default function LecturersPage() {
       refresh()
     } catch (error) {
       setUploadMessage({ type: 'error', text: error?.response?.data?.error || 'Import failed.' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this lecturer?')) return
+    try {
+      await api.delete(`/api/lecturers/${id}/`)
+      refresh()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to delete lecturer.' })
+    }
+  }
+
+  const openEdit = (lecturer) => {
+    setEditForm({
+      id: lecturer.id,
+      name: lecturer.name || '',
+      department: lecturer.department || '',
+      phone_number: lecturer.phone_number || '',
+    })
+    setEditOpen(true)
+  }
+
+  const handleEditSave = async () => {
+    try {
+      await api.patch(`/api/lecturers/${editForm.id}/`, {
+        name: editForm.name,
+        department: editForm.department,
+        phone_number: editForm.phone_number,
+      })
+      setEditOpen(false)
+      refresh()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to update lecturer.' })
+    }
+  }
+
+  const openAssign = async (lecturer) => {
+    setSelectedLecturer(lecturer)
+    setAssignCourseId('')
+    await refreshCourses()
+    setAssignOpen(true)
+  }
+
+  const handleAssign = async () => {
+    try {
+      await api.post('/api/admin/assign-lecturer/', {
+        course_id: assignCourseId,
+        lecturer_id: selectedLecturer.id,
+      })
+      setAssignOpen(false)
+      refreshCourses()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to assign lecturer.' })
     }
   }
 
@@ -147,6 +224,7 @@ export default function LecturersPage() {
               <TableCell>Department</TableCell>
               <TableCell>Phone</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -159,11 +237,18 @@ export default function LecturersPage() {
                 <TableCell>
                   <Chip size="small" color="success" label="Active" />
                 </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" onClick={() => openEdit(lecturer)}>Edit</Button>
+                    <Button size="small" variant="outlined" onClick={() => openAssign(lecturer)}>Assign</Button>
+                    <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(lecturer.id)}>Delete</Button>
+                  </Stack>
+                </TableCell>
               </TableRow>
             ))}
             {!lecturers.length && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>
                     No lecturers found yet.
                   </Box>
@@ -173,6 +258,43 @@ export default function LecturersPage() {
           </TableBody>
         </Table>
       </Paper>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Lecturer</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" value={editForm?.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <TextField label="Department" value={editForm?.department || ''} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} />
+            <TextField label="Phone" value={editForm?.phone_number || ''} onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleEditSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Assign Lecturer to Course</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 1 }}>
+            <InputLabel>Course</InputLabel>
+            <Select value={assignCourseId} label="Course" onChange={(e) => setAssignCourseId(e.target.value)}>
+              {courses.map((course) => (
+                <MenuItem key={course.id} value={course.id}>
+                  {course.name} ({course.course_code})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAssign} disabled={!assignCourseId}>
+            Assign
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   )
 }

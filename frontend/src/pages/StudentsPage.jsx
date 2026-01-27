@@ -13,12 +13,21 @@ import {
   Button,
   Alert,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import DashboardLayout from '../components/DashboardLayout'
 import api from '../services/api'
 
 export default function StudentsPage() {
   const [students, setStudents] = useState([])
+  const [courses, setCourses] = useState([])
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -30,6 +39,11 @@ export default function StudentsPage() {
   })
   const [message, setMessage] = useState(null)
   const [uploadMessage, setUploadMessage] = useState(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState(null)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignCourseId, setAssignCourseId] = useState('')
+  const [selectedStudent, setSelectedStudent] = useState(null)
 
   useEffect(() => {
     async function fetchStudents() {
@@ -49,6 +63,15 @@ export default function StudentsPage() {
       setStudents(res.data.results || res.data)
     } catch {
       setStudents([])
+    }
+  }
+
+  const refreshCourses = async () => {
+    try {
+      const res = await api.get('/api/courses/')
+      setCourses(res.data.results || res.data)
+    } catch {
+      setCourses([])
     }
   }
 
@@ -97,6 +120,62 @@ export default function StudentsPage() {
       refresh()
     } catch (error) {
       setUploadMessage({ type: 'error', text: error?.response?.data?.error || 'Import failed.' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this student?')) return
+    try {
+      await api.delete(`/api/students/${id}/`)
+      refresh()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to delete student.' })
+    }
+  }
+
+  const openEdit = (student) => {
+    setEditForm({
+      id: student.id,
+      name: student.name || '',
+      programme_of_study: student.programme_of_study || '',
+      year: student.year || '',
+      phone_number: student.phone_number || '',
+    })
+    setEditOpen(true)
+  }
+
+  const handleEditSave = async () => {
+    try {
+      await api.patch(`/api/students/${editForm.id}/`, {
+        name: editForm.name,
+        programme_of_study: editForm.programme_of_study,
+        year: editForm.year,
+        phone_number: editForm.phone_number,
+      })
+      setEditOpen(false)
+      refresh()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to update student.' })
+    }
+  }
+
+  const openAssign = async (student) => {
+    setSelectedStudent(student)
+    setAssignCourseId('')
+    await refreshCourses()
+    setAssignOpen(true)
+  }
+
+  const handleAssign = async () => {
+    try {
+      await api.post('/api/admin/enroll-student/', {
+        course_id: assignCourseId,
+        student_id: selectedStudent.id,
+      })
+      setAssignOpen(false)
+      refreshCourses()
+    } catch (error) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Unable to enroll student.' })
     }
   }
 
@@ -150,6 +229,7 @@ export default function StudentsPage() {
               <TableCell>Programme</TableCell>
               <TableCell>Year</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -162,11 +242,18 @@ export default function StudentsPage() {
                 <TableCell>
                   <Chip size="small" color="success" label="Enrolled" />
                 </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" onClick={() => openEdit(student)}>Edit</Button>
+                    <Button size="small" variant="outlined" onClick={() => openAssign(student)}>Enroll</Button>
+                    <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(student.id)}>Delete</Button>
+                  </Stack>
+                </TableCell>
               </TableRow>
             ))}
             {!students.length && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>
                     No students found yet.
                   </Box>
@@ -176,6 +263,44 @@ export default function StudentsPage() {
           </TableBody>
         </Table>
       </Paper>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Student</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" value={editForm?.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <TextField label="Programme" value={editForm?.programme_of_study || ''} onChange={(e) => setEditForm({ ...editForm, programme_of_study: e.target.value })} />
+            <TextField label="Year" value={editForm?.year || ''} onChange={(e) => setEditForm({ ...editForm, year: e.target.value })} />
+            <TextField label="Phone" value={editForm?.phone_number || ''} onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleEditSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Enroll Student in Course</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 1 }}>
+            <InputLabel>Course</InputLabel>
+            <Select value={assignCourseId} label="Course" onChange={(e) => setAssignCourseId(e.target.value)}>
+              {courses.map((course) => (
+                <MenuItem key={course.id} value={course.id}>
+                  {course.name} ({course.course_code})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAssign} disabled={!assignCourseId}>
+            Enroll
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   )
 }

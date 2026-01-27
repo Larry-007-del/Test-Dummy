@@ -677,3 +677,36 @@ class AdminBulkImportLecturersView(APIView):
             created += 1
 
         return Response({'created': created, 'skipped': skipped}, status=status.HTTP_200_OK)
+
+
+class AdminAssignLecturerView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        course_id = request.data.get('course_id')
+        lecturer_id = request.data.get('lecturer_id')
+        if not course_id or not lecturer_id:
+            return Response({'error': 'course_id and lecturer_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        course = get_object_or_404(Course, id=course_id)
+        lecturer = get_object_or_404(Lecturer, id=lecturer_id)
+        course.lecturer = lecturer
+        course.save()
+        return Response({'status': 'lecturer_assigned', 'course_id': course.id, 'lecturer_id': lecturer.id})
+
+
+class AdminEnrollStudentView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        course_id = request.data.get('course_id')
+        student_id = request.data.get('student_id')
+        if not course_id or not student_id:
+            return Response({'error': 'course_id and student_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        course = get_object_or_404(Course, id=course_id)
+        student = get_object_or_404(Student, id=student_id)
+
+        # Use through model to ensure enrollment exists
+        CourseEnrollment.objects.get_or_create(course=course, student=student)
+        return Response({'status': 'student_enrolled', 'course_id': course.id, 'student_id': student.id})
