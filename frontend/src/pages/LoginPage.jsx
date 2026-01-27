@@ -68,17 +68,17 @@ export default function LoginPage({ setIsAuthenticated }) {
           minHeight: '100vh',
         }}
       >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
+        <Paper elevation={3} sx={{ padding: 4, width: '100%' }} role="main" aria-labelledby="login-title">
+          <Typography id="login-title" variant="h4" component="h1" align="center" gutterBottom>
             Attendance System
           </Typography>
           <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 3 }}>
             Sign in to your account
           </Typography>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2 }} role="alert">{error}</Alert>}
 
-          <Box component="form" onSubmit={handleLogin}>
+          <Box component="form" onSubmit={handleLogin} aria-label="Login form">
             <FormControl fullWidth margin="normal" required>
               <InputLabel>Role</InputLabel>
               <Select value={role} label="Role" onChange={(e) => setRole(e.target.value)}>
@@ -94,6 +94,8 @@ export default function LoginPage({ setIsAuthenticated }) {
               onChange={(e) => setUsername(e.target.value)}
               margin="normal"
               required
+              autoComplete="username"
+              inputProps={{ 'aria-label': 'Username', 'aria-required': 'true' }}
             />
             <TextField
               fullWidth
@@ -103,6 +105,8 @@ export default function LoginPage({ setIsAuthenticated }) {
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
+              autoComplete="current-password"
+              inputProps={{ 'aria-label': 'Password', 'aria-required': 'true' }}
             />
             <Button
               fullWidth
@@ -111,6 +115,7 @@ export default function LoginPage({ setIsAuthenticated }) {
               type="submit"
               sx={{ mt: 3 }}
               disabled={loading}
+              aria-label={loading ? 'Signing in, please wait' : 'Sign in to your account'}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>

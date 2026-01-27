@@ -7,6 +7,9 @@ export default function SidebarMenuItem({ icon, text, to, selected, dark }) {
     <ListItemButton
       selected={selected}
       onClick={() => navigate(to)}
+      role="link"
+      aria-label={`Navigate to ${text}`}
+      aria-current={selected ? 'page' : undefined}
       sx={{
         borderRadius: 1.5,
         my: 0.5,
@@ -22,7 +25,7 @@ export default function SidebarMenuItem({ icon, text, to, selected, dark }) {
         },
       }}
     >
-      <ListItemIcon sx={{ minWidth: 36 }}>{icon}</ListItemIcon>
+      <ListItemIcon sx={{ minWidth: 36 }} aria-hidden="true">{icon}</ListItemIcon>
       <ListItemText primary={text} />
     </ListItemButton>
   )
