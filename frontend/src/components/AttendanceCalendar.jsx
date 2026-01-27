@@ -36,7 +36,6 @@ export default function AttendanceCalendar({ value, onChange, embedded = false }
         <Calendar
           onChange={onChange}
           value={value}
-          calendarType="US"
           tileContent={({ date }) => {
             const dateStr = getDateString(date)
             if (attendanceDates.includes(dateStr)) {

@@ -36,7 +36,7 @@ export default function AttendanceTrendChart({ embedded = false }) {
       <Typography variant="h6" gutterBottom>
         Attendance Trend
       </Typography>
-      <Box sx={{ width: '100%', height: 250 }}>
+      <Box sx={{ width: '100%', minHeight: 250, height: 250 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
