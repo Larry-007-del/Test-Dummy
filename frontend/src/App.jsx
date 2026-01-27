@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import { useSessionTimeout } from './hooks/useSessionTimeout'
 
 import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
@@ -19,6 +20,9 @@ export default function App() {
     Boolean(localStorage.getItem('authToken')),
   )
   const [loading, setLoading] = useState(true)
+
+  // Add session timeout monitoring
+  useSessionTimeout(isAuthenticated)
 
   useEffect(() => {
     const token = localStorage.getItem('authToken')
