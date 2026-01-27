@@ -88,6 +88,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'attendance.middleware.RateLimitMiddleware',  # Add rate limiting
 ]
 
 ROOT_URLCONF = 'attendance_system.urls'
@@ -144,6 +145,14 @@ SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG  # Use HTTPS in production
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Cache configuration (for rate limiting)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 
 
 # Static files (CSS, JavaScript, Images)
