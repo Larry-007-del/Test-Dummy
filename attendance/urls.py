@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from . import views
+from . import registration_views
 from .health import HealthCheckView
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r'feedback', views.FeedbackViewSet, basename='feedback')
 urlpatterns = [
     path('', include(router.urls)),
     path('me/', views.MeView.as_view(), name='me'),
+    path('register/', registration_views.RegisterView.as_view(), name='register'),
     path('password-requirements/', views.PasswordRequirementsView.as_view(), name='password_requirements'),
     path('request-password-reset/', views.RequestPasswordResetView.as_view(), name='request_password_reset'),
     path('reset-password/', views.ResetPasswordView.as_view(), name='reset_password'),

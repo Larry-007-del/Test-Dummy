@@ -66,17 +66,57 @@ class MeView(APIView):
             'id': user.id,
             'username': user.username,
             'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
             'role': role,
             'student_id': None,
             'lecturer_id': None,
+            'organization': None
         }
+        
         if hasattr(user, 'student'):
             data['role'] = 'student'
-            data['student_id'] = user.student.id
+            data['student_id'] = user.student.student_id
+            data['phone_number'] = user.student.phone_number
+            if user.student.organization:
+                data['organization'] = {'id': user.student.organization.id, 'name': user.student.organization.name}
+            # Mock preferences for now or pull from model if added
+            data['notification_preferences'] = {} 
+
         if hasattr(user, 'lecturer'):
             data['role'] = 'lecturer'
-            data['lecturer_id'] = user.lecturer.id
+            data['lecturer_id'] = user.lecturer.staff_id
+            data['phone_number'] = user.lecturer.phone_number
+            if user.lecturer.organization:
+                data['organization'] = {'id': user.lecturer.organization.id, 'name': user.lecturer.organization.name}
+            data['notification_preferences'] = {}
+
         return Response(data)
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+        
+        # Update User fields
+        if 'email' in data: user.email = data['email']
+        if 'first_name' in data: user.first_name = data['first_name']
+        if 'last_name' in data: user.last_name = data['last_name']
+        user.save()
+
+        # Update Role fields
+        if hasattr(user, 'student'):
+            student = user.student
+            if 'phone_number' in data:
+                student.phone_number = data['phone_number']
+            student.save()
+        
+        elif hasattr(user, 'lecturer'):
+            lecturer = user.lecturer
+            if 'phone_number' in data:
+                lecturer.phone_number = data['phone_number']
+            lecturer.save()
+            
+        return self.get(request)
 
 
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
