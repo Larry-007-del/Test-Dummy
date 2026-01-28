@@ -15,6 +15,7 @@ import CoursesPage from './pages/CoursesPage'
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage'
 import ReportsPage from './pages/ReportsPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
+import SettingsPage from './pages/SettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -134,6 +135,14 @@ export default function App() {
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
             <LecturerDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <SettingsPage />
           </PrivateRoute>
         }
       />

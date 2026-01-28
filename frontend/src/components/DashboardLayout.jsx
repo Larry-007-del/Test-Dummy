@@ -27,6 +27,7 @@ import {
   MenuBook as CoursesIcon,
   Assessment as ReportsIcon,
   Analytics as AnalyticsIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material'
 import { useLocation } from 'react-router-dom'
 import SidebarMenuItem from './SidebarMenuItem'
@@ -89,8 +90,9 @@ export default function DashboardLayout({ title, subtitle, children, userLabel =
         { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
       )
     }
-    
-    return items
+        // Settings available to all users
+    items.push({ text: 'Settings', icon: <SettingsIcon />, to: '/settings' })
+        return items
   }, [me])
 
   const handleLogout = async () => {
