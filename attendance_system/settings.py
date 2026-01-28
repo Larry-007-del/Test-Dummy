@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'openpyxl',
     'drf_yasg',
     'corsheaders',  # CORS Headers
+    'storages',  # Django Storages for S3
 ]
 
 MIDDLEWARE = [
@@ -214,6 +215,35 @@ if not DEBUG:
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media files (User uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# AWS S3 Configuration for media files (production)
+USE_S3 = os.getenv('USE_S3', 'False') == 'True'
+
+if USE_S3:
+    # AWS credentials
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+    
+    # S3 settings
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # 1 day cache
+    }
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_S3_FILE_OVERWRITE = False  # Don't overwrite files with same name
+    AWS_QUERYSTRING_AUTH = False  # Don't add auth query params to URLs
+    
+    # Use S3 for media files only (static files stay on WhiteNoise)
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
+    # Update MEDIA_URL to use S3
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
 
 # Default primary key field type
