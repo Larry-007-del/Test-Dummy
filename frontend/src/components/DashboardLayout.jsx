@@ -78,7 +78,7 @@ export default function DashboardLayout({ title, subtitle, children, userLabel =
         { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
         { text: 'Students', icon: <SchoolIcon />, to: '/students' },
         { text: 'Courses', icon: <CoursesIcon />, to: '/courses' },
-        { text: 'Attendance', icon: <Event Icon />, to: '/attendance' },
+        { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
         { text: 'Reports', icon: <ReportsIcon />, to: '/reports' },
         { text: 'Analytics', icon: <AnalyticsIcon />, to: '/admin/analytics' },
       )

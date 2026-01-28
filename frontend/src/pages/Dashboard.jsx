@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CountUp from 'react-countup'
 import AttendanceCalendar from '../components/AttendanceCalendar'
 import AttendanceTrendChart from '../components/AttendanceTrendChart'
@@ -26,6 +27,7 @@ import {
 import api from '../services/api'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     lecturers: '--',
     students: '--',
@@ -36,8 +38,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchStats() {
+    async function checkRoleAndFetch() {
       try {
+        const me = await api.get('/api/me/')
+        if (me.data.role === 'student') {
+             navigate('/student-dashboard')
+             return
+        }
+        if (me.data.role === 'lecturer') {
+             navigate('/lecturer-dashboard')
+             return
+        }
+
         const [lectRes, studRes, courseRes, attRes] = await Promise.all([
           api.get('/api/lecturers/'),
           api.get('/api/students/'),
@@ -56,7 +68,7 @@ export default function Dashboard() {
         setLoading(false)
       }
     }
-    fetchStats()
+    checkRoleAndFetch()
   }, [])
 
   return (

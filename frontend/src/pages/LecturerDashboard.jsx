@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -29,6 +30,7 @@ import DashboardLayout from '../components/DashboardLayout'
 import api from '../services/api'
 
 export default function LecturerDashboard() {
+  const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [attendanceHistory, setAttendanceHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +40,7 @@ export default function LecturerDashboard() {
   const [actionMessage, setActionMessage] = useState(null)
   const [profileMessage, setProfileMessage] = useState(null)
   const [profileMissing, setProfileMissing] = useState(false)
+  const [lecturerId, setLecturerId] = useState(null)
 
   useEffect(() => {
     if (profileMissing) return
@@ -49,6 +52,8 @@ export default function LecturerDashboard() {
           setProfileMissing(true)
           return
         }
+        setLecturerId(me.data.lecturer_id)
+        
         const [coursesRes, historyRes] = await Promise.all([
           api.get('/api/lecturers/my-courses/'),
           api.get('/api/lecturer-attendance-history/'),
@@ -94,6 +99,37 @@ export default function LecturerDashboard() {
       setActionMessage({ type: 'error', text: 'Unable to end attendance session.' })
     }
   }
+
+  const handleUpdateLocation = () => {
+    if (!navigator.geolocation) {
+      setActionMessage({ type: 'error', text: 'Geolocation is not supported by your browser.' });
+      return;
+    }
+    
+    setActionMessage({ type: 'info', text: 'Fetching location...' });
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          if (!lecturerId) {
+             throw new Error("Lecturer ID not found");
+          }
+          await api.patch(`/api/lecturers/${lecturerId}/`, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setActionMessage({ type: 'success', text: 'Location updated successfully.' });
+        } catch (error) {
+          console.error(error)
+          setActionMessage({ type: 'error', text: 'Failed to update location.' });
+        }
+      },
+      (error) => {
+        console.error(error)
+        setActionMessage({ type: 'error', text: 'Unable to retrieve location.' });
+      }
+    );
+  };
 
   return (
     <DashboardLayout
@@ -221,15 +257,24 @@ export default function LecturerDashboard() {
                 Quick Actions
               </Typography>
               <Stack spacing={2} sx={{ mt: 2 }}>
-                <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Paper 
+                  sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={() => navigate('/courses')}
+                >
                   <CourseIcon />
                   <Typography>Manage course attendance sessions</Typography>
                 </Paper>
-                <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Paper 
+                  sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={handleUpdateLocation}
+                >
                   <LocationIcon />
                   <Typography>Update lecturer location before sessions</Typography>
                 </Paper>
-                <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Paper 
+                  sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={() => navigate('/reports')}
+                >
                   <ReportIcon />
                   <Typography>Generate attendance reports</Typography>
                 </Paper>
