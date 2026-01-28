@@ -146,13 +146,42 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG  # Use HTTPS in production
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-# Cache configuration (for rate limiting)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Cache configuration
+# Use Redis in production, local memory cache for development
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/1')
+
+if not DEBUG and REDIS_URL:
+    # Production: Use Redis for caching
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            },
+            'KEY_PREFIX': 'attendance',
+            'TIMEOUT': 300,  # 5 minutes default
+        }
     }
-}
+    # Use Redis for sessions as well in production
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    # Development: Use local memory cache
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Security settings for production
 if not DEBUG:
