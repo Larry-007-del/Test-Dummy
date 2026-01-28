@@ -139,10 +139,10 @@ def send_attendance_reminders():
     for attendance in active_attendances:
         # Get students who haven't checked in yet
         enrolled_students = attendance.course.students.all()
-        checked_in_students = attendance.attendance_records.values_list('student_id', flat=True)
+        checked_in_student_ids = [s.id for s in attendance.present_students.all()]
         
         for student in enrolled_students:
-            if student.id not in checked_in_students:
+            if student.id not in checked_in_student_ids:
                 send_attendance_reminder(student, attendance)
                 reminder_count += 1
     

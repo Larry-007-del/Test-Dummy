@@ -1,6 +1,13 @@
 from rest_framework import serializers
-from .models import Lecturer, Student, Course, CourseEnrollment, Attendance, AttendanceToken, Feedback
+from .models import Organization, Lecturer, Student, Course, CourseEnrollment, Attendance, AttendanceToken, Feedback
 from django.contrib.auth.models import User
+
+# Organization serializer
+class OrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ['id', 'name', 'slug', 'domain', 'logo', 'is_active', 'created_at']
+        read_only_fields = ['slug', 'created_at']
 
 # User serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -12,11 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
 class LecturerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     courses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    profile_picture = serializers.SerializerMethodField()  # Use SerializerMethodField
+    profile_picture = serializers.SerializerMethodField()
+    organization = OrganizationSerializer(read_only=True)
 
     class Meta:
         model = Lecturer
-        fields = ['id', 'user', 'staff_id', 'name', 'profile_picture', 'courses', 'department', 'phone_number', 'latitude', 'longitude']
+        fields = ['id', 'user', 'staff_id', 'name', 'profile_picture', 'courses', 'department', 'phone_number', 'latitude', 'longitude', 'organization']
 
     def get_profile_picture(self, obj):
         request = self.context.get('request')
@@ -28,11 +36,12 @@ class LecturerSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     courses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    profile_picture = serializers.SerializerMethodField()  # Use SerializerMethodField
+    profile_picture = serializers.SerializerMethodField()
+    organization = OrganizationSerializer(read_only=True)
 
     class Meta:
         model = Student
-        fields = ['id', 'user', 'student_id', 'name', 'courses', 'profile_picture', 'programme_of_study', 'year', 'phone_number']
+        fields = ['id', 'user', 'student_id', 'name', 'courses', 'profile_picture', 'programme_of_study', 'year', 'phone_number', 'organization']
 
     def get_profile_picture(self, obj):
         request = self.context.get('request')
@@ -42,12 +51,13 @@ class StudentSerializer(serializers.ModelSerializer):
 
 # Course serializer
 class CourseSerializer(serializers.ModelSerializer):
-    lecturer = LecturerSerializer(read_only=True)  # Use nested LecturerSerializer
-    students = StudentSerializer(many=True, read_only=True)  # Use nested StudentSerializer
+    lecturer = LecturerSerializer(read_only=True)
+    students = StudentSerializer(many=True, read_only=True)
+    organization = OrganizationSerializer(read_only=True)
 
     class Meta:
         model = Course
-        fields = ['id', 'name', 'course_code', 'lecturer', 'students']
+        fields = ['id', 'name', 'course_code', 'lecturer', 'students', 'organization']
 
 # Course Enrollment serializer
 class CourseEnrollmentSerializer(serializers.ModelSerializer):

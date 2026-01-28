@@ -15,7 +15,7 @@ def get_attendance_statistics(days=30):
     
     # Total attendance sessions
     total_sessions = Attendance.objects.filter(
-        started_at__gte=start_date
+        created_at__gte=start_date
     ).count()
     
     # Active sessions
@@ -25,15 +25,15 @@ def get_attendance_statistics(days=30):
     
     # Total check-ins
     total_checkins = sum(
-        att.attendance_records.count() 
-        for att in Attendance.objects.filter(started_at__gte=start_date)
+        att.present_students.count() 
+        for att in Attendance.objects.filter(created_at__gte=start_date)
     )
     
     # Average attendance rate
     attendance_data = []
-    for att in Attendance.objects.filter(started_at__gte=start_date):
+    for att in Attendance.objects.filter(created_at__gte=start_date):
         enrolled_count = att.course.students.count()
-        checkin_count = att.attendance_records.count()
+        checkin_count = att.present_students.count()
         if enrolled_count > 0:
             rate = (checkin_count / enrolled_count) * 100
             attendance_data.append(rate)
@@ -61,7 +61,7 @@ def get_top_courses(limit=10):
     for course in courses:
         enrolled = course.students.count()
         sessions = course.attendances.count()
-        total_checkins = sum(att.attendance_records.count() for att in course.attendances.all())
+        total_checkins = sum(att.present_students.count() for att in course.attendances.all())
         
         avg_rate = 0
         if sessions > 0 and enrolled > 0:
@@ -70,7 +70,7 @@ def get_top_courses(limit=10):
         course_data.append({
             'id': course.id,
             'name': course.name,
-            'code': course.code,
+            'code': course.course_code,
             'sessions': sessions,
             'enrolled_students': enrolled,
             'average_attendance_rate': round(avg_rate, 2)
@@ -91,12 +91,12 @@ def get_attendance_trends(days=30):
         next_day = day + timedelta(days=1)
         
         sessions = Attendance.objects.filter(
-            started_at__gte=day,
-            started_at__lt=next_day
+            created_at__gte=day,
+            created_at__lt=next_day
         )
         
         session_count = sessions.count()
-        total_checkins = sum(att.attendance_records.count() for att in sessions)
+        total_checkins = sum(att.present_students.count() for att in sessions)
         
         trends.append({
             'date': day.strftime('%Y-%m-%d'),
@@ -135,7 +135,7 @@ def get_student_participation():
             total_sessions += course_sessions.count()
             
             for session in course_sessions:
-                if session.attendance_records.filter(student=student).exists():
+                if student in session.present_students.all():
                     total_checkins += 1
         
         if total_sessions == 0:

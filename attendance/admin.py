@@ -1,9 +1,10 @@
 from django.contrib import admin
 from .models import (
-    Lecturer, Student, Course, CourseEnrollment, Attendance, 
+    Organization, Lecturer, Student, Course, CourseEnrollment, Attendance, 
     AttendanceToken, Feedback, EmailVerificationToken, PasswordResetToken
 )
 
+admin.site.register(Organization)
 admin.site.register(Course)
 admin.site.register(Attendance)
 admin.site.register(Student)
