@@ -30,6 +30,7 @@ geopy==2.4.1
 setuptools
 reportlab==4.0.9
 django-cors-headers
+twilio==9.0.4
 drf-yasg
 django-cors-headers
 qrcode==7.4.2

@@ -40,7 +40,7 @@ from .serializers import (
 from rest_framework.permissions import AllowAny, IsAdminUser
 from .validators import get_password_requirements
 from .models import EmailVerificationToken, PasswordResetToken
-from .email_utils import send_verification_email, send_password_reset_email
+from .email_utils import send_verification_email, send_password_reset_email, send_attendance_notification
 from .report_utils import generate_attendance_pdf, generate_attendance_excel
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -221,6 +221,13 @@ class CourseViewSet(viewsets.ModelViewSet):
             )
             attendance.present_students.add(student)
             attendance.save()
+            
+            # Send notification to student
+            try:
+                send_attendance_notification(student, course, course.lecturer)
+            except Exception as e:
+                # Don't fail attendance if notification fails
+                print(f"Failed to send notification: {e}")
 
             return Response({'message': 'Attendance recorded successfully.'}, status=status.HTTP_200_OK)
 
