@@ -36,3 +36,5 @@ django-cors-headers
 qrcode==7.4.2
 sentry-sdk==1.25.0
 requests==2.31.0
+celery==5.4.0
+redis==5.0.9
