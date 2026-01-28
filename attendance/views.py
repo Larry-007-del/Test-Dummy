@@ -628,11 +628,31 @@ class AdminBulkImportStudentsView(APIView):
         if not upload:
             return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        decoded = upload.read().decode('utf-8')
+        try:
+            decoded = upload.read().decode('utf-8')
+        except UnicodeDecodeError:
+            return Response({'error': 'File must be UTF-8 encoded.'}, status=status.HTTP_400_BAD_REQUEST)
+
         reader = csv.DictReader(io.StringIO(decoded))
+        
+        # Validate required columns
+        required_columns = ['username', 'student_id', 'name']
+        if not reader.fieldnames:
+            return Response({'error': 'CSV file is empty or malformed.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+        if missing_columns:
+            return Response({
+                'error': f'Missing required columns: {", ".join(missing_columns)}',
+                'required': required_columns,
+                'found': reader.fieldnames
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         created = 0
         skipped = 0
-        for row in reader:
+        errors = []
+        
+        for idx, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
             username = (row.get('username') or '').strip()
             password = (row.get('password') or 'changeme123').strip()
             student_id = (row.get('student_id') or '').strip()
@@ -641,25 +661,70 @@ class AdminBulkImportStudentsView(APIView):
             year = (row.get('year') or '').strip()
             phone = (row.get('phone_number') or '').strip()
 
+            # Validation
             if not username or not student_id or not name:
-                skipped += 1
-                continue
-            if User.objects.filter(username=username).exists() or Student.objects.filter(student_id=student_id).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': 'Missing required fields (username, student_id, or name)'
+                })
                 skipped += 1
                 continue
 
-            user = User.objects.create_user(username=username, password=password)
-            Student.objects.create(
-                user=user,
-                student_id=student_id,
-                name=name,
-                programme_of_study=programme,
-                year=year,
-                phone_number=phone,
-            )
-            created += 1
+            # Check for duplicates
+            if User.objects.filter(username=username).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': f'Username "{username}" already exists'
+                })
+                skipped += 1
+                continue
+            
+            if Student.objects.filter(student_id=student_id).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': f'Student ID "{student_id}" already exists'
+                })
+                skipped += 1
+                continue
 
-        return Response({'created': created, 'skipped': skipped}, status=status.HTTP_200_OK)
+            # Validate year if provided
+            if year and not year.isdigit():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': f'Invalid year "{year}" - must be a number'
+                })
+                skipped += 1
+                continue
+
+            try:
+                user = User.objects.create_user(username=username, password=password)
+                Student.objects.create(
+                    user=user,
+                    student_id=student_id,
+                    name=name,
+                    programme_of_study=programme,
+                    year=int(year) if year else None,
+                    phone_number=phone,
+                )
+                created += 1
+            except Exception as e:
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': str(e)
+                })
+                skipped += 1
+
+        return Response({
+            'created': created,
+            'skipped': skipped,
+            'errors': errors[:50],  # Limit to first 50 errors
+            'total_errors': len(errors)
+        }, status=status.HTTP_200_OK)
 
 
 class AdminBulkImportLecturersView(APIView):
@@ -670,11 +735,31 @@ class AdminBulkImportLecturersView(APIView):
         if not upload:
             return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        decoded = upload.read().decode('utf-8')
+        try:
+            decoded = upload.read().decode('utf-8')
+        except UnicodeDecodeError:
+            return Response({'error': 'File must be UTF-8 encoded.'}, status=status.HTTP_400_BAD_REQUEST)
+
         reader = csv.DictReader(io.StringIO(decoded))
+        
+        # Validate required columns
+        required_columns = ['username', 'staff_id', 'name']
+        if not reader.fieldnames:
+            return Response({'error': 'CSV file is empty or malformed.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+        if missing_columns:
+            return Response({
+                'error': f'Missing required columns: {", ".join(missing_columns)}',
+                'required': required_columns,
+                'found': reader.fieldnames
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         created = 0
         skipped = 0
-        for row in reader:
+        errors = []
+        
+        for idx, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
             username = (row.get('username') or '').strip()
             password = (row.get('password') or 'changeme123').strip()
             staff_id = (row.get('staff_id') or '').strip()
@@ -682,24 +767,59 @@ class AdminBulkImportLecturersView(APIView):
             department = (row.get('department') or '').strip()
             phone = (row.get('phone_number') or '').strip()
 
+            # Validation
             if not username or not staff_id or not name:
-                skipped += 1
-                continue
-            if User.objects.filter(username=username).exists() or Lecturer.objects.filter(staff_id=staff_id).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': 'Missing required fields (username, staff_id, or name)'
+                })
                 skipped += 1
                 continue
 
-            user = User.objects.create_user(username=username, password=password)
-            Lecturer.objects.create(
-                user=user,
-                staff_id=staff_id,
-                name=name,
-                department=department,
-                phone_number=phone,
-            )
-            created += 1
+            # Check for duplicates
+            if User.objects.filter(username=username).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': f'Username "{username}" already exists'
+                })
+                skipped += 1
+                continue
+            
+            if Lecturer.objects.filter(staff_id=staff_id).exists():
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': f'Staff ID "{staff_id}" already exists'
+                })
+                skipped += 1
+                continue
 
-        return Response({'created': created, 'skipped': skipped}, status=status.HTTP_200_OK)
+            try:
+                user = User.objects.create_user(username=username, password=password)
+                Lecturer.objects.create(
+                    user=user,
+                    staff_id=staff_id,
+                    name=name,
+                    department=department,
+                    phone_number=phone,
+                )
+                created += 1
+            except Exception as e:
+                errors.append({
+                    'row': idx,
+                    'data': row,
+                    'error': str(e)
+                })
+                skipped += 1
+
+        return Response({
+            'created': created,
+            'skipped': skipped,
+            'errors': errors[:50],  # Limit to first 50 errors
+            'total_errors': len(errors)
+        }, status=status.HTTP_200_OK)
 
 
 class AdminAssignLecturerView(APIView):
