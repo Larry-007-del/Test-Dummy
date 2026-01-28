@@ -41,8 +41,11 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from .validators import get_password_requirements
 from .models import EmailVerificationToken, PasswordResetToken
 from .email_utils import send_verification_email, send_password_reset_email
+from .report_utils import generate_attendance_pdf, generate_attendance_excel
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.http import HttpResponse
+from datetime import datetime
 
 # Current user profile info
 class MeView(APIView):
@@ -802,3 +805,65 @@ class VerifyEmailView(APIView):
             
         except EmailVerificationToken.DoesNotExist:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AttendanceReportView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Get query parameters
+        format_type = request.query_params.get('format', 'pdf')  # pdf or excel
+        course_id = request.query_params.get('course_id')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        student_id = request.query_params.get('student_id')
+        
+        # Base queryset
+        attendances = Attendance.objects.all().select_related('student', 'course', 'course__lecturer')
+        
+        # Apply filters
+        if course_id:
+            attendances = attendances.filter(course_id=course_id)
+        if student_id:
+            attendances = attendances.filter(student_id=student_id)
+        if start_date:
+            attendances = attendances.filter(date__gte=start_date)
+        if end_date:
+            attendances = attendances.filter(date__lte=end_date)
+        
+        # Order by date
+        attendances = attendances.order_by('-date')
+        
+        # Get course if specified
+        course = None
+        if course_id:
+            try:
+                course = Course.objects.get(id=course_id)
+            except Course.DoesNotExist:
+                pass
+        
+        # Generate date range string
+        date_range = None
+        if start_date and end_date:
+            date_range = f"{start_date} to {end_date}"
+        elif start_date:
+            date_range = f"From {start_date}"
+        elif end_date:
+            date_range = f"Until {end_date}"
+        
+        # Generate report based on format
+        if format_type == 'excel':
+            buffer = generate_attendance_excel(attendances, course, date_range)
+            filename = f"attendance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            response = HttpResponse(
+                buffer.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        else:  # Default to PDF
+            buffer = generate_attendance_pdf(attendances, course, date_range)
+            filename = f"attendance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
