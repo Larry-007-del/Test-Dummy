@@ -67,7 +67,7 @@ class CourseEnrollment(models.Model):
         unique_together = ('course', 'student')
 
 class Attendance(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='attendances')
     date = models.DateField()
     present_students = models.ManyToManyField(Student, related_name='attended_classes')
     lecturer_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -78,6 +78,7 @@ class Attendance(models.Model):
     updated_by = models.ForeignKey(User, related_name='updated_attendances', on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    allowed_radius_meters = models.IntegerField(default=100)  # Configurable radius
 
     def __str__(self):
         return f"{self.course.name} - {self.date} (Active: {self.is_active})"
@@ -90,9 +91,70 @@ class Attendance(models.Model):
             self.is_active = False
         super().save(*args, **kwargs)
 
-
     def is_open(self):
         return self.is_active and (self.ended_at is None or self.ended_at > timezone.now())
+
+    def is_within_radius(self, student_lat, student_lon, accuracy=None):
+        """
+        Check if student location is within allowed radius of lecturer location
+        
+        Args:
+            student_lat: Student's latitude
+            student_lon: Student's longitude
+            accuracy: GPS accuracy in meters (optional)
+            
+        Returns:
+            bool: True if within radius, False otherwise
+        """
+        from geopy.distance import geodesic
+        
+        if not self.lecturer_latitude or not self.lecturer_longitude:
+            # If no lecturer location set, allow check-in (fallback)
+            return True
+        
+        # Calculate distance between lecturer and student
+        lecturer_coords = (float(self.lecturer_latitude), float(self.lecturer_longitude))
+        student_coords = (float(student_lat), float(student_lon))
+        
+        distance_meters = geodesic(lecturer_coords, student_coords).meters
+        
+        # If accuracy provided, add it to allowed radius (account for GPS uncertainty)
+        effective_radius = self.allowed_radius_meters
+        if accuracy and accuracy > 0:
+            # Add half of accuracy to account for both lecturer and student GPS uncertainty
+            effective_radius += (accuracy / 2)
+        
+        return distance_meters <= effective_radius
+    
+    def get_location_info(self, student_lat, student_lon):
+        """
+        Get detailed location information for debugging
+        
+        Returns:
+            dict: Distance, radius, and whether student is within range
+        """
+        from geopy.distance import geodesic
+        
+        if not self.lecturer_latitude or not self.lecturer_longitude:
+            return {
+                'distance_meters': None,
+                'allowed_radius_meters': self.allowed_radius_meters,
+                'is_within_range': True,
+                'message': 'No lecturer location set'
+            }
+        
+        lecturer_coords = (float(self.lecturer_latitude), float(self.lecturer_longitude))
+        student_coords = (float(student_lat), float(student_lon))
+        
+        distance_meters = geodesic(lecturer_coords, student_coords).meters
+        is_within = distance_meters <= self.allowed_radius_meters
+        
+        return {
+            'distance_meters': round(distance_meters, 2),
+            'allowed_radius_meters': self.allowed_radius_meters,
+            'is_within_range': is_within,
+            'message': f"{'Within' if is_within else 'Outside'} allowed range"
+        }
 
 class AttendanceToken(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)

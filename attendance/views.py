@@ -462,26 +462,100 @@ class SubmitLocationView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         latitude = request.data.get('latitude')
         longitude = request.data.get('longitude')
+        accuracy = request.data.get('accuracy')  # GPS accuracy in meters
         attendance_token = request.data.get('attendance_token')
 
+        # Validate inputs
+        if not latitude or not longitude:
+            return Response({
+                'error': 'Latitude and longitude are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+            accuracy = float(accuracy) if accuracy else None
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'Invalid location coordinates'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate token
         try:
             token = AttendanceToken.objects.get(token=attendance_token, is_active=True)
         except AttendanceToken.DoesNotExist:
-            return Response({'error': 'Invalid or expired token'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': 'Invalid or expired attendance token'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        attendance = Attendance.objects.filter(course=token.course, date=timezone.now().date()).first()
+        # Get active attendance session
+        attendance = Attendance.objects.filter(
+            course=token.course, 
+            date=timezone.now().date(),
+            is_active=True
+        ).first()
 
-        if attendance and attendance.is_within_radius(float(latitude), float(longitude)):
-            user = request.user
-            if hasattr(user, 'student'):
-                student = user.student
-                if student in token.course.students.all():
-                    attendance.present_students.add(student)
-                    attendance.save()
-                    return Response({'status': 'Attendance marked successfully'}, status=status.HTTP_200_OK)
-            return Response({'error': 'Student not enrolled in this course'}, status=status.HTTP_400_BAD_REQUEST)
+        if not attendance:
+            return Response({
+                'error': 'No active attendance session for this course'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'error': 'Location is out of range'}, status=status.HTTP_400_BAD_REQUEST)
+        # Verify user is a student
+        user = request.user
+        if not hasattr(user, 'student'):
+            return Response({
+                'error': 'Only students can mark attendance'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        student = user.student
+
+        # Verify student is enrolled in course
+        if student not in token.course.students.all():
+            return Response({
+                'error': 'Student not enrolled in this course'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Check if already marked present
+        if student in attendance.present_students.all():
+            return Response({
+                'message': 'Attendance already marked',
+                'status': 'already_present'
+            }, status=status.HTTP_200_OK)
+
+        # Verify location is within radius
+        if not attendance.is_within_radius(latitude, longitude, accuracy):
+            location_info = attendance.get_location_info(latitude, longitude)
+            return Response({
+                'error': 'Location is out of range',
+                'location_info': location_info
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mark attendance
+        attendance.present_students.add(student)
+        attendance.save()
+
+        # Get location info for response
+        location_info = attendance.get_location_info(latitude, longitude)
+
+        # Send notification (async if Celery is available)
+        try:
+            from .tasks import send_attendance_notification_async
+            send_attendance_notification_async.delay(
+                student.name,
+                token.course.name,
+                user.email,
+                student.phone_number
+            )
+        except Exception:
+            # Fallback to synchronous notification
+            from .email_utils import send_attendance_notification
+            send_attendance_notification(student, token.course)
+
+        return Response({
+            'status': 'success',
+            'message': 'Attendance marked successfully',
+            'location_info': location_info
+        }, status=status.HTTP_200_OK)
 
 # Student Attendance History View
 from rest_framework.response import Response
