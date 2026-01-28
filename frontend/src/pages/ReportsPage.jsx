@@ -50,11 +50,8 @@ export default function ReportsPage() {
       if (endDate) params.append('end_date', endDate)
       params.append('format', format)
 
-      const endpoint = format === 'pdf' 
-        ? '/api/attendances/generate_pdf/'
-        : '/api/attendances/generate_excel/'
-
-      const response = await api.get(`${endpoint}?${params.toString()}`, {
+      const response = await api.get('/api/attendance-report/', {
+        params: Object.fromEntries(params),
         responseType: 'blob',
       })
 

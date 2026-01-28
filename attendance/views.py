@@ -168,6 +168,72 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = AttendanceTokenSerializer(token)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'])
+    def batch_upload(self, request):
+        """
+        Batch upload courses from CSV file.
+        Expected CSV format: course_code,name,lecturer_staff_id
+        """
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        csv_file = request.FILES['file']
+        if not csv_file.name.endswith('.csv'):
+            return Response({'error': 'File must be a CSV'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            decoded_file = csv_file.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            for row in reader:
+                try:
+                    course_code = row.get('course_code', '').strip()
+                    name = row.get('name', '').strip()
+                    lecturer_staff_id = row.get('lecturer_staff_id', '').strip()
+                    
+                    if not course_code or not name:
+                        error_count += 1
+                        errors.append(f"Row missing course_code or name")
+                        continue
+                    
+                    # Find lecturer
+                    lecturer = None
+                    if lecturer_staff_id:
+                        try:
+                            lecturer = Lecturer.objects.get(staff_id=lecturer_staff_id)
+                        except Lecturer.DoesNotExist:
+                            error_count += 1
+                            errors.append(f"Lecturer {lecturer_staff_id} not found")
+                            continue
+                    
+                    # Create or update course
+                    course, created = Course.objects.update_or_create(
+                        course_code=course_code,
+                        defaults={
+                            'name': name,
+                            'lecturer': lecturer,
+                        }
+                    )
+                    success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    errors.append(str(e))
+            
+            return Response({
+                'success_count': success_count,
+                'error_count': error_count,
+                'errors': errors[:10]  # Return first 10 errors
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'], url_path='generate_attendance_qr', throttle_classes=[AttendanceTokenBurstThrottle])
     def generate_attendance_qr(self, request, pk=None):
         """Generate an attendance token (if not provided) and return a QR PNG with the token encoded.

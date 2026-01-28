@@ -86,8 +86,8 @@ export default function StudentDashboard() {
           return
         }
         const [coursesRes, historyRes] = await Promise.all([
-          api.get('/api/api/studentenrolledcourses/'),
-          api.get('/api/api/student-attendance-history/'),
+          api.get('/api/studentenrolledcourses/'),
+          api.get('/api/student-attendance-history/'),
         ])
         setCourses(coursesRes.data || [])
         setHistory(historyRes.data || [])

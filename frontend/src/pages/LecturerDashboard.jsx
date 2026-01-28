@@ -49,7 +49,7 @@ export default function LecturerDashboard() {
         }
         const [coursesRes, historyRes] = await Promise.all([
           api.get('/api/lecturers/my-courses/'),
-          api.get('/api/api/lecturer-attendance-history/'),
+          api.get('/api/lecturer-attendance-history/'),
         ])
         setCourses(coursesRes.data || [])
         setAttendanceHistory(historyRes.data || [])
