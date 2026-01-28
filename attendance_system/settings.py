@@ -134,7 +134,6 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-}
 
 
 # Password validation
@@ -351,3 +350,7 @@ CORS_ALLOWED_ORIGINS = [
 # During local development accept all origins (conservative for dev only)
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+
+# Redirect after login to API root
+LOGIN_REDIRECT_URL = '/api/'
+LOGOUT_REDIRECT_URL = '/api-auth/login/'

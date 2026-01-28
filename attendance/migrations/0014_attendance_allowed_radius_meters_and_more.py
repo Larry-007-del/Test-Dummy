@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('attendance', '0012_emailverificationtoken_passwordresettoken_and_more'),
+        ('attendance', '0012_add_feedback'),
     ]
 
     operations = [
