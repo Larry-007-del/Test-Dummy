@@ -20,6 +20,7 @@ urlpatterns = [
     path('reset-password/', views.ResetPasswordView.as_view(), name='reset_password'),
     path('verify-email/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('attendance-report/', views.AttendanceReportView.as_view(), name='attendance_report'),
+    path('admin/analytics/', views.AdminAnalyticsView.as_view(), name='admin_analytics'),
     path('admin/create-student/', views.AdminCreateStudentView.as_view(), name='admin_create_student'),
     path('admin/create-lecturer/', views.AdminCreateLecturerView.as_view(), name='admin_create_lecturer'),
     path('admin/import-students/', views.AdminBulkImportStudentsView.as_view(), name='admin_import_students'),

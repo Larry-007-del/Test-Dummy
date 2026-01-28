@@ -24,6 +24,14 @@ try:
 except Exception:
     requests = None
 from .throttles import AttendanceTokenBurstThrottle
+from .analytics_utils import (
+    get_attendance_statistics,
+    get_top_courses,
+    get_attendance_trends,
+    get_student_participation,
+    get_lecturer_activity,
+    get_system_overview
+)
 
 from django.conf import settings
 from .models import Lecturer, Student, Course, Attendance, AttendanceToken, Feedback
@@ -994,3 +1002,23 @@ class AttendanceReportView(APIView):
             response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
+
+
+class AdminAnalyticsView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        # Get query parameters
+        days = int(request.query_params.get('days', 30))
+        
+        # Gather all analytics data
+        analytics_data = {
+            'system_overview': get_system_overview(),
+            'attendance_statistics': get_attendance_statistics(days=days),
+            'top_courses': get_top_courses(limit=10),
+            'attendance_trends': get_attendance_trends(days=days),
+            'student_participation': get_student_participation(),
+            'lecturer_activity': get_lecturer_activity(limit=10)
+        }
+        
+        return Response(analytics_data)
