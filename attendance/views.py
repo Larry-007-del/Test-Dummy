@@ -79,6 +79,35 @@ class MeView(APIView):
         return Response(data)
 
 
+class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for listing and retrieving organizations.
+    Read-only for regular users, writable through admin panel.
+    """
+    queryset = Lecturer.objects.none()
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        from .models import Organization
+        # Get organizations the user has access to
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Organization.objects.filter(is_active=True)
+        
+        # For students and lecturers, return their organization
+        org_ids = []
+        if hasattr(user, 'student') and user.student.organization:
+            org_ids.append(user.student.organization.id)
+        if hasattr(user, 'lecturer') and user.lecturer.organization:
+            org_ids.append(user.lecturer.organization.id)
+        
+        return Organization.objects.filter(id__in=org_ids, is_active=True)
+
+    def get_serializer_class(self):
+        from .serializers import OrganizationSerializer
+        return OrganizationSerializer
+
+
 class PasswordRequirementsView(APIView):
     permission_classes = [AllowAny]
     

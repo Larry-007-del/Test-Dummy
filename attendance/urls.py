@@ -5,6 +5,7 @@ from . import views
 from .health import HealthCheckView
 
 router = DefaultRouter()
+router.register(r'organizations', views.OrganizationViewSet, basename='organization')
 router.register(r'lecturers', views.LecturerViewSet, basename='lecturer')
 router.register(r'students', views.StudentViewSet, basename='student')
 router.register(r'courses', views.CourseViewSet, basename='course')

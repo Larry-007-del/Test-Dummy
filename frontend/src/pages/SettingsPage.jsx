@@ -21,7 +21,8 @@ import {
   Sms as SmsIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { authFetch } from '../utils/authFetch';
+import DashboardLayout from '../components/DashboardLayout';
+import api from '../services/api';
 
 const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -48,15 +49,15 @@ const SettingsPage = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await authFetch('/api/me/');
-      setUser(response);
+      const response = await api.get('/api/me/');
+      setUser(response.data);
       
       // Parse notification preferences if they exist
-      if (response.notification_preferences) {
+      if (response.data.notification_preferences) {
         try {
-          const prefs = typeof response.notification_preferences === 'string'
-            ? JSON.parse(response.notification_preferences)
-            : response.notification_preferences;
+          const prefs = typeof response.data.notification_preferences === 'string'
+            ? JSON.parse(response.data.notification_preferences)
+            : response.data.notification_preferences;
           setPreferences({ ...preferences, ...prefs });
         } catch (e) {
           console.error('Failed to parse preferences:', e);
@@ -64,8 +65,8 @@ const SettingsPage = () => {
       }
 
       // Set current organization if user has one
-      if (response.organization) {
-        setSelectedOrganization(response.organization.id || response.organization);
+      if (response.data.organization) {
+        setSelectedOrganization(response.data.organization.id || response.data.organization);
       }
 
       setError('');
@@ -79,8 +80,8 @@ const SettingsPage = () => {
 
   const loadOrganizations = async () => {
     try {
-      const response = await authFetch('/api/organizations/');
-      setOrganizations(Array.isArray(response) ? response : []);
+      const response = await api.get('/api/organizations/');
+      setOrganizations(Array.isArray(response.data) ? response.data : (response.data.results || []));
     } catch (err) {
       console.error('Failed to load organizations:', err);
       setOrganizations([]);
@@ -109,11 +110,8 @@ const SettingsPage = () => {
         throw new Error('Unable to determine user endpoint');
       }
 
-      await authFetch(endpoint, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          notification_preferences: JSON.stringify(preferences),
-        }),
+      await api.patch(endpoint, {
+        notification_preferences: JSON.stringify(preferences),
       });
 
       setSuccess('Notification preferences saved successfully');
@@ -140,11 +138,8 @@ const SettingsPage = () => {
         throw new Error('Unable to determine user endpoint');
       }
 
-      await authFetch(endpoint, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          organization: selectedOrganization,
-        }),
+      await api.patch(endpoint, {
+        organization: selectedOrganization,
       });
 
       setSuccess('Organization updated successfully. Refreshing...');
@@ -167,6 +162,7 @@ const SettingsPage = () => {
   }
 
   return (
+    <DashboardLayout title="Settings" subtitle="Manage your preferences and account settings">
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
         Settings
@@ -355,6 +351,7 @@ const SettingsPage = () => {
         </Alert>
       </Box>
     </Box>
+    </DashboardLayout>
   );
 };
 
