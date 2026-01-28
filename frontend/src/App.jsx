@@ -11,6 +11,10 @@ import StudentsPage from './pages/StudentsPage'
 import AttendancePage from './pages/AttendancePage'
 import StudentDashboard from './pages/StudentDashboard'
 import LecturerDashboard from './pages/LecturerDashboard'
+import CoursesPage from './pages/CoursesPage'
+import AdminAnalyticsPage from './pages/AdminAnalyticsPage'
+import ReportsPage from './pages/ReportsPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -59,7 +63,9 @@ export default function App() {
       <ThemeProvider>
         <Routes>
           <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />      <Route
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
+      <Route
         path="/dashboard"
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
@@ -84,10 +90,34 @@ export default function App() {
         }
       />
       <Route
+        path="/courses"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <CoursesPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/attendance"
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
             <AttendancePage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <ReportsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/analytics"
+        element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <AdminAnalyticsPage />
           </PrivateRoute>
         }
       />

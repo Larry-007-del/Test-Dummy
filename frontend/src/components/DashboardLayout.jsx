@@ -24,6 +24,9 @@ import {
   Logout as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  MenuBook as CoursesIcon,
+  Assessment as ReportsIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material'
 import { useLocation } from 'react-router-dom'
 import SidebarMenuItem from './SidebarMenuItem'
@@ -59,16 +62,34 @@ export default function DashboardLayout({ title, subtitle, children, userLabel =
   const menuItems = useMemo(() => {
     const items = [
       { text: 'Dashboard', icon: <DashboardIcon />, to: '/dashboard' },
-      { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
-      { text: 'Students', icon: <SchoolIcon />, to: '/students' },
-      { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
     ]
+    
     if (me?.role === 'student') {
       items.unshift({ text: 'Student Portal', icon: <SchoolIcon />, to: '/student-dashboard' })
     }
     if (me?.role === 'lecturer') {
       items.unshift({ text: 'Lecturer Portal', icon: <PeopleIcon />, to: '/lecturer-dashboard' })
     }
+    
+    // Admin/Staff navigation items
+    if (me?.role === 'admin' || me?.is_staff) {
+      items.push(
+        { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
+        { text: 'Students', icon: <SchoolIcon />, to: '/students' },
+        { text: 'Courses', icon: <CoursesIcon />, to: '/courses' },
+        { text: 'Attendance', icon: <Event Icon />, to: '/attendance' },
+        { text: 'Reports', icon: <ReportsIcon />, to: '/reports' },
+        { text: 'Analytics', icon: <AnalyticsIcon />, to: '/admin/analytics' },
+      )
+    } else {
+      // Regular users see basic pages
+      items.push(
+        { text: 'Lecturers', icon: <PeopleIcon />, to: '/lecturers' },
+        { text: 'Students', icon: <SchoolIcon />, to: '/students' },
+        { text: 'Attendance', icon: <EventIcon />, to: '/attendance' },
+      )
+    }
+    
     return items
   }, [me])
 
