@@ -127,33 +127,62 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     let active = true
+    let html5QrCode = null
+    
     async function startScanner() {
       if (!scanOpen) return
+
+      // Wait a moment for the dialog and div to be fully mounted
+      await new Promise(r => setTimeout(r, 100))
+      
       setScanError(null)
-      const html5QrCode = new Html5Qrcode('qr-reader')
-      qrRef.current = html5QrCode
       try {
+        // Ensure element exists
+        if (!document.getElementById('qr-reader')) {
+            console.warn("QR Reader element not found")
+            return
+        }
+
+        html5QrCode = new Html5Qrcode('qr-reader')
+        qrRef.current = html5QrCode
+        
         await html5QrCode.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: 220 },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (!active) return
-            setTokenInput(decodedText)
+            
+            try {
+              // Try to parse as JSON (new format)
+              const data = JSON.parse(decodedText)
+              if (data.token) {
+                setTokenInput(data.token)
+              } else {
+                 setTokenInput(decodedText)
+              }
+            } catch (e) {
+              // Fallback for plain text or old format
+              setTokenInput(decodedText)
+            }
+            
             setScanOpen(false)
           },
           () => {},
         )
       } catch (err) {
-        if (active) setScanError('Unable to access camera. Please allow camera access.')
+        console.error(err)
+        if (active) setScanError('Unable to access camera. Please allow camera access and ensure https if on mobile.')
       }
     }
+    
     startScanner()
+
     return () => {
       active = false
       if (qrRef.current) {
         qrRef.current.stop().catch(() => {}).finally(() => {
-          qrRef.current?.clear?.().catch(() => {})
-          qrRef.current = null
+            qrRef.current?.clear?.().catch(() => {})
+            qrRef.current = null
         })
       }
     }

@@ -24,6 +24,7 @@ import {
   MenuBook as CourseIcon,
   Assessment as ReportIcon,
 } from '@mui/icons-material'
+import QRCode from "react-qr-code" 
 import DashboardLayout from '../components/DashboardLayout'
 import api from '../services/api'
 
@@ -33,6 +34,7 @@ export default function LecturerDashboard() {
   const [loading, setLoading] = useState(true)
   const [qrOpen, setQrOpen] = useState(false)
   const [qrData, setQrData] = useState(null)
+  const [qrCourseName, setQrCourseName] = useState('')
   const [actionMessage, setActionMessage] = useState(null)
   const [profileMessage, setProfileMessage] = useState(null)
   const [profileMissing, setProfileMissing] = useState(false)
@@ -67,16 +69,20 @@ export default function LecturerDashboard() {
     fetchLecturerData()
   }, [profileMissing])
 
-  const handleGenerateQr = async (courseId) => {
+  const handleGenerateQr = async (courseId, courseName) => {
     try {
-      const res = await api.post(`/api/courses/${courseId}/generate_attendance_qr/`, {
-        as: 'base64',
-      })
-      setQrData(res.data)
+      const res = await api.post(`/api/courses/${courseId}/generate_attendance_token/`)
+      // Store token data to be rendered as QR code
+      setQrData(JSON.stringify({
+        token: res.data.token,
+        course_id: courseId,
+        valid_until: res.data.expires_at
+      }))
+      setQrCourseName(courseName)
       setQrOpen(true)
-      setActionMessage({ type: 'success', text: 'QR token generated successfully.' })
+      setActionMessage({ type: 'success', text: 'QR code generated successfully. Students can scan to attend.' })
     } catch {
-      setActionMessage({ type: 'error', text: 'Unable to generate QR token. Ensure you are assigned to this course.' })
+      setActionMessage({ type: 'error', text: 'Unable to start attendance session. Ensure you are authorized.' })
     }
   }
 
@@ -187,7 +193,7 @@ export default function LecturerDashboard() {
                           size="small"
                           variant="contained"
                           startIcon={<QrCodeIcon />}
-                          onClick={() => handleGenerateQr(course.id)}
+                          onClick={() => handleGenerateQr(course.id, course.name)}
                         >
                           Generate QR
                         </Button>
@@ -256,16 +262,42 @@ export default function LecturerDashboard() {
       </Container>
 
       <Dialog open={qrOpen} onClose={() => setQrOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Attendance QR Token</DialogTitle>
+        <DialogTitle>Attendance QR Code - {qrCourseName}</DialogTitle>
         <DialogContent>
-          {qrData?.qr_base64 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <img src={qrData.qr_base64} alt="Attendance QR" style={{ width: 220, height: 220 }} />
-            </Box>
-          )}
-          <Typography variant="body2" color="textSecondary">
-            Token: <b>{qrData?.token || '—'}</b>
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, mt: 2 }}>
+            {qrData ? (
+              <>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: 'white',
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    display: 'inline-block'
+                  }}
+                >
+                  <QRCode
+                    value={qrData}
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
+                </Box>
+                <Typography variant="body1" sx={{ mt: 3, fontWeight: 'bold' }}>
+                  Scan to mark attendance
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Valid until session ends
+                </Typography>
+                {/* Fallback display of token for manual check/debug */}
+                <Typography variant="caption" sx={{ mt: 1, fontFamily: 'monospace' }}>
+                   {JSON.parse(qrData).token}
+                </Typography>
+              </>
+            ) : (
+              <CircularProgress />
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setQrOpen(false)}>Close</Button>

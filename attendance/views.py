@@ -147,8 +147,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         latitude = request.data.get('latitude')
         longitude = request.data.get('longitude')
 
-        if not token_value or not latitude or not longitude:
-            return Response({'error': 'Token, latitude, and longitude are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not token_value:
+             # Auto-generate if not provided
+             token_value = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
         # Create the attendance token
         token = AttendanceToken.objects.create(
@@ -159,11 +160,12 @@ class CourseViewSet(viewsets.ModelViewSet):
             is_active=True
         )
 
-        # Optionally update the lecturer's location
-        lecturer = course.lecturer
-        lecturer.latitude = latitude
-        lecturer.longitude = longitude
-        lecturer.save()
+        # Optionally update the lecturer's location if provided
+        if latitude and longitude:
+            lecturer = course.lecturer
+            lecturer.latitude = latitude
+            lecturer.longitude = longitude
+            lecturer.save()
 
         serializer = AttendanceTokenSerializer(token)
         return Response(serializer.data)
