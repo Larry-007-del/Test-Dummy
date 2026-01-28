@@ -113,10 +113,25 @@ WSGI_APPLICATION = 'attendance_system.wsgi.application'
 
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use PostgreSQL in production via DATABASE_URL env var, SQLite for development
+import dj_database_url
+
+if os.getenv('DATABASE_URL'):
+    # Production: PostgreSQL from DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,  # Connection pooling
+            conn_health_checks=True,  # Health checks for connections
+        )
+    }
+else:
+    # Development: SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
 }
 
