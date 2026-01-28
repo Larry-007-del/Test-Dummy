@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { useSessionTimeout } from './hooks/useSessionTimeout'
 
 import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import Dashboard from './pages/Dashboard'
 import LecturersPage from './pages/LecturersPage'
 import StudentsPage from './pages/StudentsPage'
@@ -63,7 +64,9 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
       <Route

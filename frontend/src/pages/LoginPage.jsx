@@ -130,6 +130,19 @@ export default function LoginPage({ setIsAuthenticated }) {
           <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
             Demo credentials: admin / 123
           </Typography>
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2">
+              Don't have an account?{' '}
+              <Link to="/register" style={{ textDecoration: 'none', fontWeight: 'bold' }}>
+                Sign Up
+              </Link>
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              <Link to="/forgot-password" style={{ textDecoration: 'none' }}>
+                Forgot Password?
+              </Link>
+            </Typography>
+          </Box>
         </Paper>
       </Box>
     </Container>
