@@ -4,17 +4,44 @@ from django.core.exceptions import ValidationError
 from geopy.distance import geodesic
 from datetime import timedelta
 from django.utils import timezone
+from django.utils.text import slugify
 import secrets
+
+
+class Organization(models.Model):
+    """
+    Multi-tenancy support - each institution/organization has isolated data
+    """
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True)
+    domain = models.CharField(max_length=255, unique=True, null=True, blank=True)  # e.g., 'university-a' for subdomain routing
+    logo = models.ImageField(upload_to='organization_logos/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
 
 class Lecturer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     staff_id = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
     profile_picture = models.ImageField(upload_to='lecturer_pictures/', blank=True, null=True)
-    department = models.CharField(max_length=255, blank=True, null=True)  # Added field
+    department = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='lecturers', null=True)
 
     def __str__(self):
         return f"{self.name} ({self.staff_id})"
@@ -33,9 +60,10 @@ class Student(models.Model):
     student_id = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
     profile_picture = models.ImageField(upload_to='student_pictures/', blank=True, null=True)
-    programme_of_study = models.CharField(max_length=255, blank=True, null=True)  # Added field
-    year = models.CharField(max_length=2, blank=True, null=True)  # Added field
+    programme_of_study = models.CharField(max_length=255, blank=True, null=True)
+    year = models.CharField(max_length=2, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='students', null=True)
 
     def __str__(self):
         return f"{self.name} ({self.student_id})"
@@ -48,7 +76,8 @@ class Course(models.Model):
     course_code = models.CharField(max_length=10, unique=True)
     lecturer = models.ForeignKey(Lecturer, on_delete=models.CASCADE, related_name='courses')
     students = models.ManyToManyField(Student, through='CourseEnrollment', related_name='courses')
-    is_active = models.BooleanField(default=False)  # Added field
+    is_active = models.BooleanField(default=False)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='courses', null=True)
 
     def __str__(self):
         return f"{self.name} ({self.course_code})"
