@@ -39,6 +39,8 @@ export default function LecturerDashboard() {
   const [qrOpen, setQrOpen] = useState(false)
   const [qrData, setQrData] = useState(null)
   const [qrCourseName, setQrCourseName] = useState('')
+  const [qrCourseId, setQrCourseId] = useState(null)
+  const [liveStats, setLiveStats] = useState({ present_count: 0, total_enrolled: 0, recent_attendees: [] })
   const [actionMessage, setActionMessage] = useState(null)
   const [profileMessage, setProfileMessage] = useState(null)
   const [profileMissing, setProfileMissing] = useState(false)
@@ -113,12 +115,33 @@ export default function LecturerDashboard() {
         valid_until: res.data.expires_at
       }))
       setQrCourseName(courseName)
+      setQrCourseId(courseId)
+      setLiveStats({ present_count: 0, total_enrolled: 0, recent_attendees: [] })
       setQrOpen(true)
       setActionMessage({ type: 'success', text: 'QR code generated successfully. Students can scan to attend.' })
     } catch {
       setActionMessage({ type: 'error', text: 'Unable to start attendance session. Ensure you are authorized.' })
     }
   }
+
+  // Poll for live attendance updates when QR modal is open
+  useEffect(() => {
+    if (!qrOpen || !qrCourseId) return
+    
+    const fetchLiveStats = async () => {
+      try {
+        const res = await api.get(`/api/courses/${qrCourseId}/live_attendance/`)
+        setLiveStats(res.data)
+      } catch (err) {
+        console.error("Failed to fetch live stats", err)
+      }
+    }
+
+    fetchLiveStats() // Initial fetch
+    const interval = setInterval(fetchLiveStats, 3000) // Poll every 3s
+    
+    return () => clearInterval(interval)
+  }, [qrOpen, qrCourseId])
 
   const handleEndAttendance = async (courseId) => {
     try {
@@ -374,9 +397,29 @@ export default function LecturerDashboard() {
                 <Typography variant="caption" color="textSecondary">
                   Valid until session ends
                 </Typography>
+
+                {/* Live Stats Section */}
+                <Box sx={{ mt: 4, width: '100%', maxWidth: 300, textAlign: 'center' }}>
+                    <Typography variant="h6" color="primary" fontWeight="bold">
+                        Live Count: {liveStats.present_count} / {liveStats.total_enrolled}
+                    </Typography>
+                    {liveStats.recent_attendees?.length > 0 && (
+                        <Box sx={{ mt: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                            <Typography variant="caption" color="textSecondary" display="block">
+                                Latest:
+                            </Typography>
+                            {liveStats.recent_attendees.map((student, idx) => (
+                                <Typography key={idx} variant="body2" sx={{ animation: 'fadeIn 0.5s' }}>
+                                    {student.name}
+                                </Typography>
+                            ))}
+                        </Box>
+                    )}
+                </Box>
+
                 {/* Fallback display of token for manual check/debug */}
-                <Typography variant="caption" sx={{ mt: 1, fontFamily: 'monospace' }}>
-                   {JSON.parse(qrData).token}
+                <Typography variant="caption" sx={{ mt: 1, fontFamily: 'monospace', display: 'block' }}>
+                   Token: {JSON.parse(qrData).token}
                 </Typography>
               </>
             ) : (
