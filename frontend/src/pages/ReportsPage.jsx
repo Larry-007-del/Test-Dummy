@@ -26,16 +26,31 @@ import api from '../services/api'
 
 export default function ReportsPage() {
   const [format, setFormat] = useState('pdf')
-  const [attendanceId, setAttendanceId] = useState('')
   const [courseId, setCourseId] = useState('')
+  const [courses, setCourses] = useState([])
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [message, setMessage] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Fetch courses on mount
+  useState(() => {
+    const fetchCourses = async () => {
+      try {
+        // Try lecturer endpoint first
+        const res = await api.get('/api/lecturers/my-courses/')
+        setCourses(res.data)
+      } catch (err) {
+        // Fallback or just ignore if not lecturer (e.g. admin)
+        console.error("Failed to load courses", err)
+      }
+    }
+    fetchCourses()
+  }, [])
+
   const handleGenerateReport = async () => {
-    if (!attendanceId && !courseId) {
-      setMessage({ type: 'error', text: 'Please provide either an Attendance ID or Course ID' })
+    if (!courseId) {
+      setMessage({ type: 'error', text: 'Please select a course' })
       return
     }
 
@@ -44,8 +59,7 @@ export default function ReportsPage() {
 
     try {
       const params = new URLSearchParams()
-      if (attendanceId) params.append('attendance_id', attendanceId)
-      if (courseId) params.append('course_id', courseId)
+      params.append('course_id', courseId)
       if (startDate) params.append('start_date', startDate)
       if (endDate) params.append('end_date', endDate)
       params.append('format', format)
@@ -126,25 +140,23 @@ export default function ReportsPage() {
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Attendance ID (Optional)"
-                  value={attendanceId}
-                  onChange={e => setAttendanceId(e.target.value)}
-                  placeholder="Enter specific attendance session ID"
-                  type="number"
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Course ID (Optional)"
-                  value={courseId}
-                  onChange={e => setCourseId(e.target.value)}
-                  placeholder="Enter course ID for all sessions"
-                  type="number"
-                />
+                <FormControl fullWidth>
+                  <InputLabel>Course</InputLabel>
+                  <Select
+                    value={courseId}
+                    onChange={e => setCourseId(e.target.value)}
+                    label="Course"
+                  >
+                    {courses.map(course => (
+                       <MenuItem key={course.id} value={course.id}>
+                         {course.name} ({course.course_code})
+                       </MenuItem>
+                    ))}
+                    {courses.length === 0 && (
+                        <MenuItem disabled value="">No courses found</MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
               </Grid>
 
               <Grid item xs={12} md={6}>
@@ -192,22 +204,26 @@ export default function ReportsPage() {
           <Box component="ul" sx={{ pl: 2 }}>
             <li>
               <Typography variant="body2">
-                <strong>Attendance ID:</strong> Generate report for a specific attendance session
+                <strong>Course:</strong> Select the course to generate a report for.
               </Typography>
             </li>
             <li>
               <Typography variant="body2">
-                <strong>Course ID:</strong> Generate report for all sessions of a specific course
+                <strong>Date Range:</strong> Optional. Filter sessions between specific dates.
               </Typography>
             </li>
             <li>
               <Typography variant="body2">
-                <strong>Date Range:</strong> Filter attendance sessions by date range
+                <strong>PDF Format:</strong> Formatted document with course details and student list.
               </Typography>
             </li>
             <li>
               <Typography variant="body2">
-                <strong>PDF Format:</strong> Formatted document with course details, student list, and statistics
+                <strong>Excel Format:</strong> Raw data spreadsheet suitable for further analysis.
+              </Typography>
+            </li>
+          </Box>
+        </Paper>
               </Typography>
             </li>
             <li>
