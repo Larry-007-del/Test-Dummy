@@ -34,7 +34,7 @@ from .analytics_utils import (
 )
 
 from django.conf import settings
-from .models import Lecturer, Student, Course, Attendance, AttendanceToken, Feedback
+from .models import Lecturer, Student, Course, CourseEnrollment, Attendance, AttendanceToken, Feedback
 from .serializers import (
     LecturerSerializer,
     StudentSerializer,
@@ -179,6 +179,16 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if hasattr(user, 'lecturer'):
+            serializer.save(lecturer=user.lecturer, organization=user.lecturer.organization)
+        elif hasattr(user, 'student'):
+             # Students shouldn't create courses, but just in case
+             serializer.save(organization=user.student.organization)
+        else:
+            serializer.save()
 
     @action(detail=True, methods=['post'], throttle_classes=[AttendanceTokenBurstThrottle])
     def generate_attendance_token(self, request, pk=None):
@@ -346,6 +356,31 @@ class CourseViewSet(viewsets.ModelViewSet):
         return HttpResponse(data, content_type='image/png')
 
     @action(detail=False, methods=['post'])
+    def enroll(self, request):
+        code = request.data.get('code')
+        if not code:
+            return Response({'error': 'Course code is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Flexible matching for demo ease
+            course = Course.objects.get(course_code__iexact=code.strip())
+        except Course.DoesNotExist:
+            return Response({'error': 'Course not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        try:
+            student = Student.objects.get(user=request.user)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Use get_or_create for M2M with through model
+        enrollment, created = CourseEnrollment.objects.get_or_create(course=course, student=student)
+        
+        if not created:
+             return Response({'message': f'Already enrolled in {course.name}'}, status=status.HTTP_200_OK)
+             
+        return Response({'message': f'Successfully enrolled in {course.name}'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
     def take_attendance(self, request):
         token = request.data.get('token')
 
@@ -354,6 +389,12 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         try:
             attendance_token = AttendanceToken.objects.get(token=token, is_active=True)
+            
+            if attendance_token.expires_at and attendance_token.expires_at <= timezone.now():
+                attendance_token.is_active = False
+                attendance_token.save()
+                return Response({'error': 'Token has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
             course = attendance_token.course
             student = get_object_or_404(Student, user=request.user)
 

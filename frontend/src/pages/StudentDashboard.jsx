@@ -73,6 +73,10 @@ export default function StudentDashboard() {
   const [scanError, setScanError] = useState(null)
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [enrollInput, setEnrollInput] = useState('')
+  const [enrollMessage, setEnrollMessage] = useState(null)
+  const [enrolling, setEnrolling] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const qrRef = useRef(null)
 
   useEffect(() => {
@@ -103,9 +107,28 @@ export default function StudentDashboard() {
       }
     }
     fetchStudentData()
-  }, [profileMissing])
+  }, [profileMissing, refreshTrigger])
 
   const totalAttendances = history.reduce((sum, item) => sum + (item.attendances?.length || 0), 0)
+
+  const handleEnroll = async () => {
+    if (!enrollInput.trim()) {
+       setEnrollMessage({ type: 'error', text: 'Enter a course code.' })
+       return
+    }
+    setEnrolling(true)
+    setEnrollMessage(null)
+    try {
+      const res = await api.post('/api/courses/enroll/', { code: enrollInput.trim() })
+      setEnrollMessage({ type: 'success', text: res.data?.message })
+      setEnrollInput('')
+      setRefreshTrigger(prev => prev + 1)
+    } catch (error) {
+       setEnrollMessage({ type: 'error', text: error?.response?.data?.error || 'Enrollment failed.' })
+    } finally {
+      setEnrolling(false)
+    }
+  }
 
   const handleCheckIn = async () => {
     if (!tokenInput.trim()) {
@@ -297,6 +320,40 @@ export default function StudentDashboard() {
               {checkInMessage && (
                 <Alert severity={checkInMessage.type} sx={{ mt: 2 }}>
                   {checkInMessage.text}
+                </Alert>
+              )}
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2.5, boxShadow: 4 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Join a Course
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Enter the course code to self-enroll (e.g., CSC404).
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                <TextField
+                  label="Course Code"
+                  value={enrollInput}
+                  onChange={(e) => setEnrollInput(e.target.value)}
+                  sx={{ flex: 1 }}
+                  size="small"
+                  disabled={enrolling}
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleEnroll}
+                  disabled={enrolling}
+                  startIcon={enrolling && <CircularProgress size={20} />}
+                >
+                  {enrolling ? 'Joining...' : 'Join Course'}
+                </Button>
+              </Stack>
+              {enrollMessage && (
+                <Alert severity={enrollMessage.type} sx={{ mt: 2 }}>
+                  {enrollMessage.text}
                 </Alert>
               )}
             </Paper>

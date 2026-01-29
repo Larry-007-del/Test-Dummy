@@ -15,12 +15,14 @@ import {
   DialogContent,
   DialogTitle,
   DialogActions,
+  TextField,
   Alert,
   CircularProgress,
   Skeleton,
 } from '@mui/material'
 import {
   QrCode2 as QrCodeIcon,
+  Add as AddIcon,
   LocationOn as LocationIcon,
   MenuBook as CourseIcon,
   Assessment as ReportIcon,
@@ -41,6 +43,11 @@ export default function LecturerDashboard() {
   const [profileMessage, setProfileMessage] = useState(null)
   const [profileMissing, setProfileMissing] = useState(false)
   const [lecturerId, setLecturerId] = useState(null)
+  
+  // Create Course State
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newCourse, setNewCourse] = useState({ name: '', code: '' })
 
   useEffect(() => {
     if (profileMissing) return
@@ -73,6 +80,28 @@ export default function LecturerDashboard() {
     }
     fetchLecturerData()
   }, [profileMissing])
+
+  const handleCreateCourse = async () => {
+    if (!newCourse.name || !newCourse.code) {
+      setActionMessage({ type: 'error', text: 'Please fill in all fields.' })
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await api.post('/api/courses/', {
+        name: newCourse.name,
+        course_code: newCourse.code
+      })
+      setCourses([...courses, res.data])
+      setCreateOpen(false)
+      setNewCourse({ name: '', code: '' })
+      setActionMessage({ type: 'success', text: 'Course created successfully.' })
+    } catch (error) {
+      setActionMessage({ type: 'error', text: 'Failed to create course. Ensure code is unique.' })
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const handleGenerateQr = async (courseId, courseName) => {
     try {
@@ -138,12 +167,23 @@ export default function LecturerDashboard() {
       userLabel="lecturer"
     >
       <Container maxWidth="xl">
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Welcome back, Lecturer
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-          Manage courses, generate attendance tokens, and review attendance history.
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              Welcome back, Lecturer
+            </Typography>
+            <Typography variant="subtitle1" color="textSecondary">
+              Manage courses, generate attendance tokens, and review attendance history.
+            </Typography>
+          </Box>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={() => setCreateOpen(true)}
+          >
+            Create Course
+          </Button>
+        </Stack>
 
         {loading ? (
           <Grid container spacing={3}>
@@ -346,6 +386,42 @@ export default function LecturerDashboard() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setQrOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Course Dialog */}
+      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Create New Course</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+             <Typography variant="body2" color="textSecondary">
+               Create a new course to start taking attendance.
+             </Typography>
+            <TextField
+              label="Course Name"
+              placeholder="e.g. Intro to Computer Science"
+              fullWidth
+              value={newCourse.name}
+              onChange={(e) => setNewCourse({ ...newCourse, name: e.target.value })}
+            />
+            <TextField
+              label="Course Code"
+              placeholder="e.g. CSC 101"
+              fullWidth
+              value={newCourse.code}
+              onChange={(e) => setNewCourse({ ...newCourse, code: e.target.value })}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCreateCourse} 
+            variant="contained" 
+            disabled={creating}
+          >
+            {creating ? 'Creating...' : 'Create'}
+          </Button>
         </DialogActions>
       </Dialog>
     </DashboardLayout>
