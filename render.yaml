@@ -3,7 +3,7 @@ services:
     name: attendance-system
     env: python
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: gunicorn attendance_system.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: python manage.py migrate && python manage.py init_admin && gunicorn attendance_system.wsgi:application --bind 0.0.0.0:$PORT
     staticPublishPath: staticfiles
     envVars:
       - key: DJANGO_SECRET_KEY
