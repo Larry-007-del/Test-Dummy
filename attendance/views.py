@@ -220,6 +220,36 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = AttendanceTokenSerializer(token)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def live_attendance(self, request, pk=None):
+        """
+        Get real-time statistics for the current day's attendance session.
+        Useful for polling during the QR code display.
+        """
+        course = self.get_object()
+        today = timezone.now().date()
+        
+        try:
+            attendance = Attendance.objects.get(course=course, date=today)
+            present_students = attendance.present_students.all()
+            present_count = present_students.count()
+            # Return last 5 attendees for visual feedback
+            recent_attendees = [{
+                'name': s.name,
+                'time': 'Just now' # Timestamp would need M2M through model with timestamp
+            } for s in present_students.order_by('-id')[:5]]
+        except Attendance.DoesNotExist:
+            present_count = 0
+            recent_attendees = []
+
+        total_enrolled = course.students.count()
+        
+        return Response({
+            'present_count': present_count,
+            'total_enrolled': total_enrolled,
+            'recent_attendees': recent_attendees
+        })
+
     @action(detail=False, methods=['post'])
     def batch_upload(self, request):
         """
