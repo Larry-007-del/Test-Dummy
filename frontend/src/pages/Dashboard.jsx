@@ -4,6 +4,7 @@ import CountUp from 'react-countup'
 import AttendanceCalendar from '../components/AttendanceCalendar'
 import AttendanceTrendChart from '../components/AttendanceTrendChart'
 import DashboardLayout from '../components/DashboardLayout'
+import { useAuth } from '../context/AuthContext'
 import {
   Box,
   Container,
@@ -28,6 +29,7 @@ import api from '../services/api'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { user: me } = useAuth()
   const [stats, setStats] = useState({
     lecturers: '--',
     students: '--',
@@ -40,12 +42,11 @@ export default function Dashboard() {
   useEffect(() => {
     async function checkRoleAndFetch() {
       try {
-        const me = await api.get('/api/me/')
-        if (me.data.role === 'student') {
+        if (me?.role === 'student') {
              navigate('/student-dashboard')
              return
         }
-        if (me.data.role === 'lecturer') {
+        if (me?.role === 'lecturer') {
              navigate('/lecturer-dashboard')
              return
         }
@@ -69,7 +70,7 @@ export default function Dashboard() {
       }
     }
     checkRoleAndFetch()
-  }, [])
+  }, [me])
 
   return (
     <DashboardLayout

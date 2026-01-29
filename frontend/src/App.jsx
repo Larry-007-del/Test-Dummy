@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
+import { AuthProvider } from './context/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useSessionTimeout } from './hooks/useSessionTimeout'
 
@@ -21,50 +21,21 @@ import NotFoundPage from './pages/NotFoundPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import PrivateRoute from './components/PrivateRoute'
-import api from './services/api'
+import { useAuth } from './context/AuthContext'
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    Boolean(localStorage.getItem('authToken')),
-  )
-  const [loading, setLoading] = useState(true)
-
+function AppRoutes() {
+  const { isAuthenticated, loading } = useAuth()
+  
   // Add session timeout monitoring
   useSessionTimeout(isAuthenticated)
-
-  useEffect(() => {
-    const token = localStorage.getItem('authToken')
-    if (!token) {
-      setIsAuthenticated(false)
-      setLoading(false)
-      return
-    }
-
-    // Check if token is still valid
-    const checkAuth = async () => {
-      try {
-        await api.get('/api/me/')
-        setIsAuthenticated(true)
-      } catch (error) {
-        localStorage.removeItem('authToken')
-        setIsAuthenticated(false)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [])
 
   if (loading) {
     return <div>Loading...</div>
   }
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
@@ -72,7 +43,7 @@ export default function App() {
       <Route
         path="/dashboard"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <Dashboard />
           </PrivateRoute>
         }
@@ -80,7 +51,7 @@ export default function App() {
       <Route
         path="/lecturers"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <LecturersPage />
           </PrivateRoute>
         }
@@ -88,7 +59,7 @@ export default function App() {
       <Route
         path="/students"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <StudentsPage />
           </PrivateRoute>
         }
@@ -96,7 +67,7 @@ export default function App() {
       <Route
         path="/courses"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <CoursesPage />
           </PrivateRoute>
         }
@@ -104,7 +75,7 @@ export default function App() {
       <Route
         path="/attendance"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <AttendancePage />
           </PrivateRoute>
         }
@@ -112,7 +83,7 @@ export default function App() {
       <Route
         path="/reports"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <ReportsPage />
           </PrivateRoute>
         }
@@ -120,7 +91,7 @@ export default function App() {
       <Route
         path="/admin/analytics"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <AdminAnalyticsPage />
           </PrivateRoute>
         }
@@ -128,7 +99,7 @@ export default function App() {
       <Route
         path="/student-dashboard"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <StudentDashboard />
           </PrivateRoute>
         }
@@ -136,7 +107,7 @@ export default function App() {
       <Route
         path="/lecturer-dashboard"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <LecturerDashboard />
           </PrivateRoute>
         }
@@ -144,7 +115,7 @@ export default function App() {
       <Route
         path="/settings"
         element={
-          <PrivateRoute isAuthenticated={isAuthenticated}>
+          <PrivateRoute>
             <SettingsPage />
           </PrivateRoute>
         }
@@ -155,7 +126,17 @@ export default function App() {
       />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
-    </ThemeProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
+          <AppRoutes />
+        </ThemeProvider>
+      </AuthProvider>
     </ErrorBoundary>
   )
 }

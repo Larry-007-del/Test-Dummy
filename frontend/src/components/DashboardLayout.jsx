@@ -29,36 +29,23 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import SidebarMenuItem from './SidebarMenuItem'
 import { useThemeMode } from '../context/ThemeContext'
-import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const drawerWidth = 260
 
 export default function DashboardLayout({ title, subtitle, children, userLabel = 'admin' }) {
   const theme = useTheme()
+  const navigate = useNavigate()
   const { mode, toggleTheme } = useThemeMode()
+  const { user: me, logout } = useAuth()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
   const location = useLocation()
-  const [me, setMe] = useState(null)
-
-  useEffect(() => {
-    let mounted = true
-    async function loadMe() {
-      try {
-        const res = await api.get('/api/me/')
-        if (mounted) setMe(res.data)
-      } catch {
-        if (mounted) setMe(null)
-      }
-    }
-    loadMe()
-    return () => { mounted = false }
-  }, [])
 
   const menuItems = useMemo(() => {
     const items = [
@@ -96,14 +83,8 @@ export default function DashboardLayout({ title, subtitle, children, userLabel =
   }, [me])
 
   const handleLogout = async () => {
-    try {
-      await api.post('/api/api/logout/')
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      localStorage.removeItem('authToken')
-      window.location.href = '/login'
-    }
+    await logout()
+    navigate('/login')
   }
 
   const displayName = me?.username || userLabel
